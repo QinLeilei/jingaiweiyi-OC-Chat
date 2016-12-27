@@ -1,0 +1,37 @@
+//
+//  Header.pch
+//  MyXMPP
+//
+//  Created by jingaiweiyi on 2016/12/9.
+//  Copyright © 2016年 yunshangshiji. All rights reserved.
+//
+
+#ifndef PrefixHeader_pch
+#define PrefixHeader_pch
+
+#import "BaseVC.h"
+#import "TFConfig.h"
+
+#import "Masonry.h"
+#import "AFNetworking.h"
+#import "UIImageView+WebCache.h"
+#import "UIButton+TFCommon.h"
+#import "TFXMPPManager.h"
+
+#import "XZConstants.h"
+#import "UIImage+Extension.h"
+#import "UIView+Extension.h"
+#import "XZGroup.h"
+#import "XZUser.h"
+#import "NSString+Extension.h"
+#import "MJExtension.h"
+#import "ICChatServerDefs.h"
+#import "ICMessageHelper.h"
+#import "ICMediaManager.h"
+#import "ICVideoManager.h"
+#import "ICRecordManager.h"
+#import "ICFileTool.h"
+#import "NSDictionary+Extension.h"
+#import "UIGestureRecognizer+YYAdd.h"
+
+#endif /* Header_h */
