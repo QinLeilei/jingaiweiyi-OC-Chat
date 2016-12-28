@@ -14,9 +14,14 @@
 + (ICMessage *)resolveWithXMPPMessageArchiving_Message_CoreDataObject:(XMPPMessageArchiving_Message_CoreDataObject *)xmppMessage {
     
     NSLog(@"xmppMessage: %@", [xmppMessage printObjectAllProperty]);
+    NSLog(@"bareJid: %@", [xmppMessage.bareJid printObjectAllProperty]);
+    NSLog(@"message: %@", [xmppMessage.message printObjectAllProperty]);
+    
     
     ICMessage *message    = [[ICMessage alloc] init];
+    
     message.to = xmppMessage.bareJid.user;
+    
     message.from = [[NSUserDefaults standardUserDefaults] objectForKey:XMPPManagerUserName];
     message.fileKey       = nil;
     message.date          = [ICMessageHelper currentMessageTime];
