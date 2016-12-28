@@ -13,6 +13,8 @@
 
 + (ICMessage *)resolveWithXMPPMessageArchiving_Message_CoreDataObject:(XMPPMessageArchiving_Message_CoreDataObject *)xmppMessage {
     
+    NSLog(@"xmppMessage: %@", [xmppMessage printObjectAllProperty]);
+    
     ICMessage *message    = [[ICMessage alloc] init];
     message.to = xmppMessage.bareJid.user;
     message.from = [[NSUserDefaults standardUserDefaults] objectForKey:XMPPManagerUserName];

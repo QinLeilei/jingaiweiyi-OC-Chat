@@ -204,6 +204,7 @@
 		A44732131DFEB9C100E71DDF /* MyTabBar.m in Sources */ = {isa = PBXBuildFile; fileRef = A447320F1DFEB9C000E71DDF /* MyTabBar.m */; };
 		A44732161DFEBA1900E71DDF /* AddFriendVC.m in Sources */ = {isa = PBXBuildFile; fileRef = A44732151DFEBA1900E71DDF /* AddFriendVC.m */; };
 		A45324C21E0A630D0091A401 /* TestVC.m in Sources */ = {isa = PBXBuildFile; fileRef = A45324C11E0A630D0091A401 /* TestVC.m */; };
+		A46680141E13BD93007337EE /* NSObject+TFCommon.m in Sources */ = {isa = PBXBuildFile; fileRef = A46680131E13BD93007337EE /* NSObject+TFCommon.m */; };
 		A470DF361DFFDF6500993A62 /* ChatVC.m in Sources */ = {isa = PBXBuildFile; fileRef = A470DF351DFFDF6500993A62 /* ChatVC.m */; };
 		A490D9A11E07AFFC0087A57B /* TFRecordTools.m in Sources */ = {isa = PBXBuildFile; fileRef = A490D9A01E07AFFC0087A57B /* TFRecordTools.m */; };
 		A490D9B31E07CC4D0087A57B /* XMPPMessage+Tools.m in Sources */ = {isa = PBXBuildFile; fileRef = A490D9B21E07CC4D0087A57B /* XMPPMessage+Tools.m */; };
@@ -702,6 +703,8 @@
 		A44732151DFEBA1900E71DDF /* AddFriendVC.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AddFriendVC.m; sourceTree = "<group>"; };
 		A45324C01E0A630D0091A401 /* TestVC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TestVC.h; sourceTree = "<group>"; };
 		A45324C11E0A630D0091A401 /* TestVC.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TestVC.m; sourceTree = "<group>"; };
+		A46680121E13BD93007337EE /* NSObject+TFCommon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSObject+TFCommon.h"; sourceTree = "<group>"; };
+		A46680131E13BD93007337EE /* NSObject+TFCommon.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSObject+TFCommon.m"; sourceTree = "<group>"; };
 		A470DF341DFFDF6500993A62 /* ChatVC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ChatVC.h; sourceTree = "<group>"; };
 		A470DF351DFFDF6500993A62 /* ChatVC.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ChatVC.m; sourceTree = "<group>"; };
 		A490D99F1E07AFFC0087A57B /* TFRecordTools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TFRecordTools.h; sourceTree = "<group>"; };
@@ -1950,6 +1953,8 @@
 				A42ADCB61E0A6EAB00F27D53 /* NSDate+TFCommon.m */,
 				A44731EE1DFE7D3E00E71DDF /* UIButton+TFCommon.h */,
 				A44731EF1DFE7D3E00E71DDF /* UIButton+TFCommon.m */,
+				A46680121E13BD93007337EE /* NSObject+TFCommon.h */,
+				A46680131E13BD93007337EE /* NSObject+TFCommon.m */,
 			);
 			path = Common;
 			sourceTree = "<group>";
@@ -2558,6 +2563,7 @@
 				A44730AA1DFAADC800E71DDF /* XMPPPing.m in Sources */,
 				A44731D51DFE57DE00E71DDF /* MASCompositeConstraint.m in Sources */,
 				A4A6AD0E1E0BCC63009C7A4E /* ICChatBoxMoreView.m in Sources */,
+				A46680141E13BD93007337EE /* NSObject+TFCommon.m in Sources */,
 				A44731C41DFE57DE00E71DDF /* AFNetworkReachabilityManager.m in Sources */,
 				A44732121DFEB9C000E71DDF /* MessageVC.m in Sources */,
 				A44731C81DFE57DE00E71DDF /* AFURLSessionManager.m in Sources */,
