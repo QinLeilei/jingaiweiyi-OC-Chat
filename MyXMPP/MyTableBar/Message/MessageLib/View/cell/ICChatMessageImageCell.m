@@ -77,10 +77,24 @@
                     self.imageV.image = arrowImage;
                 }
             }
+            
+            [self setupSub];
+            
 #pragma mark - ------------------
             
         }
     }];
+}
+
+- (void)setupSub {
+    CGFloat imageVH = CGRectGetHeight(self.imageV.frame);
+    CGFloat imageVW = CGRectGetWidth(self.imageV.frame);
+    
+    [self.imageV addSubview:self.imageBtn];
+    self.imageBtn.frame = CGRectMake(0, 0, imageVH, imageVH);
+    [self.imageV addSubview:self.photoActivityView];
+    self.photoActivityView.center = CGPointMake(imageVW * 0.5, imageVH * 0.5);
+    
 }
 
 - (void)imageBtnClick:(UIButton *)btn
