@@ -10,6 +10,7 @@
 
 @interface NSObject (TFCommon)
 
-- (NSDictionary *)propertyDictionary;
 - (NSString *)printObjectAllProperty;
+- (NSArray *)getAllProperties;
+- (NSDictionary *)dictionaryWithAllProperties;
 @end

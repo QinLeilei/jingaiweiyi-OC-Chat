@@ -17,6 +17,7 @@
 #import "UIImageView+WebCache.h"
 #import "UIButton+TFCommon.h"
 #import "NSObject+TFCommon.h"
+#import "ImageSizeManager.h"
 #import "TFXMPPManager.h"
 
 #import "XZConstants.h"

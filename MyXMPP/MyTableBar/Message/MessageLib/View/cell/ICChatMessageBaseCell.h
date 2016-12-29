@@ -24,6 +24,9 @@
 @end
 
 @interface ICChatMessageBaseCell : UITableViewCell
+#pragma mark - 唐飞
+@property (nonatomic, strong) NSIndexPath *currIndexPath;
+@property (nonatomic, copy) void(^mediaRefreshBlock)(NSIndexPath *currIndexPath);
 
 @property (nonatomic, weak) id<BaseCellDelegate> longPressDelegate;
 

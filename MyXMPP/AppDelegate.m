@@ -10,6 +10,7 @@
 
 #import "LoginVC.h"
 #import "MyTabBar.h"
+
 @interface AppDelegate ()
 
 @end
@@ -20,6 +21,8 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
     
+    NSLog(@"NSHomeDirectory: %@", NSHomeDirectory());
+    
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(loginStatusWithNotification:) name:XMPPManagerLoginResultNotification object:nil];
     
@@ -29,6 +32,7 @@
         [self setupWindowViewControllerWithName:@"LoginVC"];
     }
     
+    [[ImageSizeManager shareManager] save];
     [self.window makeKeyAndVisible];
 
     

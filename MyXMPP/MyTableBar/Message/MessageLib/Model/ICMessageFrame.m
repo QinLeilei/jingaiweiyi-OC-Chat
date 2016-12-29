@@ -18,6 +18,8 @@
 #define APP_WIDTH ([UIScreen mainScreen].bounds.size.width)
 #define APP_HEIGHT ([UIScreen mainScreen].bounds.size.height)
 
+#define kMediaItemWidth (0.6 *kScreen_Width)
+#define kMediaItemMaxHeight (0.5 *kScreen_Height)
 
 @implementation ICMessageFrame
 
@@ -26,6 +28,31 @@
 {
     _model = model;
     
+    [self refreshFrame:model];
+}
+
+
+    
+// 缩放，临时的方法
+- (CGSize)handleImage:(CGSize)retSize
+{
+    CGFloat scaleH = 0.22;
+    CGFloat scaleW = 0.38;
+    CGFloat height = 0;
+    CGFloat width = 0;
+    if (retSize.height / APP_HEIGHT + 0.16 > retSize.width / APP_WIDTH) {
+        height = APP_HEIGHT * scaleH;
+        width = retSize.width / retSize.height * height;
+    } else {
+        width = APP_WIDTH * scaleW;
+        height = retSize.height / retSize.width * width;
+    }
+    return CGSizeMake(width, height);
+}
+
+
+#pragma makr - 唐飞
+- (void)refreshFrame:(ICMessageModel *)model {
     CGFloat headToView    = 10;
     CGFloat headToBubble  = 3;
     CGFloat headWidth     = 45;
@@ -50,11 +77,11 @@
             _topViewF             = CGRectMake(CGRectGetMinX(_headImageViewF) - headToBubble - topViewSize.width-headToBubble-5, cellMargin,topViewSize.width,topViewSize.height);
             _chatLabelF           = CGRectMake(x, topViewH + cellMargin + bubblePadding, chateLabelSize.width, chateLabelSize.height);
         } else if ([model.message.type isEqualToString:TypePic]) { // 图片
-            CGSize imageSize = CGSizeMake(40, 40);
-            UIImage *image   = [UIImage imageWithContentsOfFile:[[ICMediaManager sharedManager] imagePathWithName:model.mediaPath.lastPathComponent]];
-            if (image) {
-                imageSize          = [self handleImage:image.size];
-            }
+            CGSize imageSize = CGSizeZero;
+            imageSize = [[ImageSizeManager shareManager] sizeWithSrc:model.mediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
+            
+            NSLog(@"imageSize: %@", NSStringFromCGSize(imageSize));
+            
             imageSize.width        = imageSize.width > timeSize.width ? imageSize.width : timeSize.width;
             CGSize topViewSize     = CGSizeMake(imageSize.width-arrowWidth, topViewH);
             CGSize bubbleSize      = CGSizeMake(imageSize.width, imageSize.height);
@@ -87,7 +114,7 @@
             _topViewF              = CGRectMake(x, cellMargin, topViewSize.width, topViewSize.height);
             _picViewF              = CGRectMake(x, cellMargin+topViewH, imageSize.width, imageSize.height);
         } else if ([model.message.type isEqualToString:TypeFile]) {
-           CGSize bubbleSize = CGSizeMake(253, 95.0);
+            CGSize bubbleSize = CGSizeMake(253, 95.0);
             _bubbleViewF = CGRectMake(CGRectGetMinX(_headImageViewF)-headToBubble-bubbleSize.width, cellMargin+topViewH, bubbleSize.width, bubbleSize.height);
             CGSize topViewSize     = CGSizeMake(bubbleSize.width-arrowWidth, topViewH);
             CGFloat x              = CGRectGetMinX(_bubbleViewF);
@@ -121,11 +148,12 @@
             _topViewF     = CGRectMake(CGRectGetMinX(_bubbleViewF)+arrowWidth, cellMargin, topViewSize.width, topViewSize.height);
             _chatLabelF   = CGRectMake(x, cellMargin + bubblePadding + topViewH, chateLabelSize.width, chateLabelSize.height);
         } else if ([model.message.type isEqualToString:TypePic]) {
-            CGSize imageSize = CGSizeMake(40, 40);
-            UIImage *image   = [UIImage imageWithContentsOfFile:[[ICMediaManager sharedManager] imagePathWithName:model.mediaPath.lastPathComponent]];
-            if (image) {
-                imageSize = [self handleImage:image.size];
-            }
+            
+            CGSize imageSize = CGSizeZero;
+            imageSize = [[ImageSizeManager shareManager] sizeWithSrc:model.mediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
+            NSLog(@"imageSize: %@", NSStringFromCGSize(imageSize));
+            
+            
             imageSize.width        = imageSize.width > cellMinW ? imageSize.width : cellMinW;
             CGSize topViewSize     = CGSizeMake(imageSize.width-arrowWidth, topViewH);
             CGSize bubbleSize      = CGSizeMake(imageSize.width, imageSize.height);
@@ -134,14 +162,14 @@
             CGFloat x              = CGRectGetMinX(_bubbleViewF);
             _topViewF              = CGRectMake(x+arrowWidth, cellMargin, topViewSize.width, topViewSize.height);
             _picViewF              = CGRectMake(x, cellMargin+topViewH, imageSize.width, imageSize.height);
-
+            
         } else if ([model.message.type isEqualToString:TypeVoice]) {   // 语音
             CGFloat bubbleViewW = cellMinW + 20; // 加上一个红点的宽度
             CGFloat voiceToBull = 4;
             
             _bubbleViewF = CGRectMake(CGRectGetMaxX(_headImageViewF) + headToBubble, cellMargin+topViewH, bubbleViewW, 40);
             _topViewF    = CGRectMake(CGRectGetMinX(_bubbleViewF)+arrowWidth, cellMargin, bubbleViewW-arrowWidth, topViewH);
-             _voiceIconF = CGRectMake(CGRectGetMinX(_bubbleViewF)+arrowWidth+bubblePadding, cellMargin + 10 + topViewH, 11, 16.5);
+            _voiceIconF = CGRectMake(CGRectGetMinX(_bubbleViewF)+arrowWidth+bubblePadding, cellMargin + 10 + topViewH, 11, 16.5);
             // 假设
             NSString *duraStr = @"100";
             CGSize durSize = [duraStr sizeWithMaxWidth:chatLabelMax andFont:[UIFont systemFontOfSize:14]];
@@ -190,29 +218,6 @@
         _cellHight = size.height+10;
     }
 }
-
-
-    
-// 缩放，临时的方法
-- (CGSize)handleImage:(CGSize)retSize
-{
-    CGFloat scaleH = 0.22;
-    CGFloat scaleW = 0.38;
-    CGFloat height = 0;
-    CGFloat width = 0;
-    if (retSize.height / APP_HEIGHT + 0.16 > retSize.width / APP_WIDTH) {
-        height = APP_HEIGHT * scaleH;
-        width = retSize.width / retSize.height * height;
-    } else {
-        width = APP_WIDTH * scaleW;
-        height = retSize.height / retSize.width * width;
-    }
-    return CGSizeMake(width, height);
-}
-
-
-
-
 
 
 

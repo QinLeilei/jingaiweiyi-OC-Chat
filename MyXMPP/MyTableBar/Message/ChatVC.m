@@ -94,25 +94,22 @@
 
 - (void)setData {
     [self.fetchedResultsController performFetch:NULL];
-    NSLog(@"%@", self.fetchedResultsController.fetchedObjects);
     
     [self.fetchedResultsController.fetchedObjects enumerateObjectsUsingBlock:^(XMPPMessageArchiving_Message_CoreDataObject *obj, NSUInteger idx, BOOL * _Nonnull stop) {
         
         ICMessage *message = [ICMessage resolveWithXMPPMessageArchiving_Message_CoreDataObject:obj];
         ICMessageFrame *messageF = [ICMessageHelper createMessageFrameWithMessage:message];
-        [self addObject:messageF isSender:NO];
+        [self addObject:messageF isToBottomAnimation:NO];
     }];
     
 }
 
 // 增加数据源并刷新
-- (void)addObject:(ICMessageFrame *)messageF isSender:(BOOL)isSender
+- (void)addObject:(ICMessageFrame *)messageF isToBottomAnimation:(BOOL)animation
 {
     [self.dataSource addObject:messageF];
     [self.tableView reloadData];
-    if (isSender) {
-        [self scrollToBottom:NO];
-    }
+    [self scrollToBottom:animation];
 }
 
 - (void)keyboardHidden {
@@ -125,10 +122,11 @@
 - (void)controllerDidChangeContent:(NSFetchedResultsController *)controller {
     
     XMPPMessageArchiving_Message_CoreDataObject *obj = self.fetchedResultsController.fetchedObjects.lastObject;
+    NSLog(@"obj: %@", [obj printObjectAllProperty]);
     
     ICMessage *message = [ICMessage resolveWithXMPPMessageArchiving_Message_CoreDataObject:obj];
     ICMessageFrame *messageF = [ICMessageHelper createMessageFrameWithMessage:message];
-    [self addObject:messageF isSender:NO];
+    [self addObject:messageF isToBottomAnimation:NO];
 
 }
 
@@ -169,15 +167,12 @@
     
     // fileName
     NSString *time = [NSDate nowDateFormat:TFDateFormatyyyyMMddHHmmss];
-    
     NSString *fileName = [NSString stringWithFormat:@"headImgae%@%@.png",@"1025",time];
-
     // 文件夹
     NSString *savekey = [NSString stringWithFormat:@"%@%@", @"userinfo/head_pic/", fileName];
-    
     // 下载路径
     NSString *imageUrl = [NSString stringWithFormat:@"%@%@",kGetUpy, savekey];
-    NSLog(@"下载路径:imageUrl: %@", imageUrl);
+    NSLog(@"image: %@, upy image: %@", image, imageUrl);
     
     MyUpy *upy = [[MyUpy alloc] init];
     [upy uploadImage:image savekey:savekey];
@@ -185,15 +180,16 @@
         
     } success:^(NSURLSessionDataTask *task, id responseObject) {
         //请求成功
-//        NSLog(@"请求成功：%@",responseObject);
+        NSLog(@"图片发送成功...");
         
         //上传成功,发送消息给好友
-        NSString *body = [NSString stringWithFormat:@"imageHttp:%@",imageUrl];
+        NSString *body = [NSString stringWithFormat:@"image:%@",imageUrl];
         XMPPMessage *msg = [XMPPMessage messageWithType:@"chat" to:self.chatJID];
         [msg addBody:body];
-        
         [[TFXMPPManager shareInstace].xmppStream sendElement:msg];
+        
     } failure:^(NSURLSessionDataTask *task, NSError *error) {
+        NSLog(@"图片发送失败...");
         
     }];
 }
@@ -312,9 +308,9 @@
         NSString *imageUrl = [message.body substringFromIndex:10];
         NSLog(@"imageUrl: %@", imageUrl);
         
-        [[SDWebImageManager sharedManager] downloadWithURL:[NSURL URLWithString:imageUrl] options:0 progress:^(NSInteger receivedSize, NSInteger expectedSize) {
+        [[SDWebImageManager sharedManager] downloadImageWithURL:[NSURL URLWithString:imageUrl] options:SDWebImageRetryFailed progress:^(NSInteger receivedSize, NSInteger expectedSize) {
             
-        } completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, BOOL finished) {
+        } completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, BOOL finished, NSURL *imageURL) {
             NSLog(@"图片下载完成!");
             NSTextAttachment *attach = [[NSTextAttachment alloc] init];
             
@@ -720,6 +716,10 @@
     [self registerCell];
 }
 
+
+/**
+ 注册cell，注册ID为类型
+ */
 - (void)registerCell {
     [self.tableView registerClass:[ICChatMessageTextCell class] forCellReuseIdentifier:TypeText];
     [self.tableView registerClass:[ICChatMessageImageCell class] forCellReuseIdentifier:TypePic];
@@ -731,26 +731,38 @@
 - (UITableViewCell *)addCellWithTableView:(UITableView *)tableView andIndexPath:(NSIndexPath *)indexPath {
     id obj                            = self.dataSource[indexPath.row];
     
-    NSLog(@"obj: %@", obj);
-    
     if ([obj isKindOfClass:[NSString class]]) {
         return nil;
     } else {
         ICMessageFrame *modelFrame     = (ICMessageFrame *)obj;
-        
-        
         NSString *ID                   = modelFrame.model.message.type;
         NSLog(@"ID: %@", ID);
-        
+
         if ([ID isEqualToString:TypeSystem]) {
             ICChatSystemCell *cell = [ICChatSystemCell cellWithTableView:tableView reusableId:ID];
             cell.messageF              = modelFrame;
             return cell;
         }
         ICChatMessageBaseCell *cell    = [tableView dequeueReusableCellWithIdentifier:ID];
+        cell.currIndexPath = indexPath;
 //        cell.longPressDelegate         = self;
-        [[ICMediaManager sharedManager] clearReuseImageMessage:cell.modelFrame.model];
         cell.modelFrame                = modelFrame;
+        // 媒体刷新
+        cell.mediaRefreshBlock = ^(NSIndexPath *currIndexPath) {
+            
+            NSLog(@"刷新...");
+            id obj                            = self.dataSource[indexPath.row];
+            if ([obj isKindOfClass:[NSString class]]) {
+                return;
+            } else {
+                ICMessageFrame *modelFrame     = (ICMessageFrame *)obj;
+                [modelFrame refreshFrame:modelFrame.model];
+            }
+            
+            [self.tableView reloadData];
+            
+        };
+        
         return cell;
     }
 }
