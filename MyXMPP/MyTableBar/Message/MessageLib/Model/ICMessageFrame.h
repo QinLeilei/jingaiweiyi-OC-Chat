@@ -12,6 +12,9 @@
 
 @interface ICMessageFrame : NSObject
 
+#pragma mark - 唐飞
+@property (nonatomic, strong) NSIndexPath *currIndexPath;
+
 //聊天信息的背景图
 @property (nonatomic, assign, readonly) CGRect bubbleViewF;
 
@@ -48,5 +51,6 @@
 /// 语音未读红点
 @property (nonatomic, assign) CGRect redViewF;
 
+- (void)refreshFrame:(ICMessageModel *)model;
 
 @end

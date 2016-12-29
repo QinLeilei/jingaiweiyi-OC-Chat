@@ -14,6 +14,7 @@
 @interface ICChatMessageBaseCell ()
 
 
+
 @end
 
 @implementation ICChatMessageBaseCell
@@ -87,8 +88,9 @@
 - (void)setModelFrame:(ICMessageFrame *)modelFrame
 {
     _modelFrame = modelFrame;
+    _modelFrame.currIndexPath = self.currIndexPath;
     
-     ICMessageModel *messageModel = modelFrame.model;
+    ICMessageModel *messageModel = modelFrame.model;
     self.headImageView.frame     = modelFrame.headImageViewF;
     self.bubbleView.frame        = modelFrame.bubbleViewF;
     if (messageModel.isSender) {    // 发送者

@@ -7,7 +7,8 @@
 //
 
 #import "ICChatMessageBaseCell.h"
-
+#define kMediaItemWidth (0.6 *kScreen_Width)
+#define kMediaItemMaxHeight (0.5 *kScreen_Height)
 @interface ICChatMessageImageCell : ICChatMessageBaseCell
 
 

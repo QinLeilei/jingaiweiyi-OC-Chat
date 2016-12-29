@@ -14,6 +14,10 @@
 
 @interface ICMessage : NSObject
 
+#pragma mark - 唐飞
+/**< 是否发送者 */
+@property (nonatomic, assign) BOOL isSender;
+
 // 消息来源用户名
 @property (nonatomic, copy) NSString *senderName;
 // 消息来源用户id

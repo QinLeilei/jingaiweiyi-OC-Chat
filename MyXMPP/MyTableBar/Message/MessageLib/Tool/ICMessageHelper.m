@@ -30,8 +30,11 @@
 + (ICMessageFrame *)createMessageFrameWithMessage:(ICMessage *)message {
     ICMessageModel *model = [[ICMessageModel alloc] init];
     model.message = message;
-    model.isSender        = [message.from isEqualToString:[[NSUserDefaults standardUserDefaults] objectForKey:XMPPManagerUserName]]? YES: NO;
-    model.mediaPath       = nil;
+    model.isSender        = message.isSender;
+    /**< 媒体类型 */
+    if (message.type == TypePic || message.type == TypeVoice || message.type == TypeVideo) {
+        model.mediaPath = message.content;
+    }
     ICMessageFrame *modelF = [[ICMessageFrame alloc] init];
     modelF.model = model;
     return modelF;
