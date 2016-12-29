@@ -26,6 +26,9 @@
 {
     UITapGestureRecognizer *_tap;   // 键盘收起手势
     UIPanGestureRecognizer *_pan;
+    
+    CGRect _smallRect;
+    CGRect _bigRect;
 }
 
 @property (strong, nonatomic) UITableView *tableView;
@@ -783,6 +786,34 @@
     }
     _dataSource = [[NSMutableArray alloc] init];
     return _dataSource;
+}
+
+#pragma mark - public method
+
+// 路由响应
+- (void)routerEventWithName:(NSString *)eventName
+                   userInfo:(NSDictionary *)userInfo
+{
+    /**< 获取 modelFrame */
+    ICMessageFrame *modelFrame = [userInfo objectForKey:MessageKey];
+    
+    /**< 根据eventName来响应对应的事件 */
+    if ([eventName isEqualToString:GXRouterEventTextUrlTapEventName]) {
+        NSLog(@"处理外部url点击事件...");
+        
+    } else if ([eventName isEqualToString:GXRouterEventImageTapEventName]) {
+        
+        NSLog(@"处理图片点击事件...");
+        
+    } else if ([eventName isEqualToString:GXRouterEventVoiceTapEventName]) {
+        
+        NSLog(@"处理语音点击事件...");
+
+    } else if ([eventName isEqualToString:GXRouterEventURLSkip]) {
+        
+        NSLog(@"处理url点击事件...");
+        
+    }
 }
 
 - (void)didReceiveMemoryWarning {

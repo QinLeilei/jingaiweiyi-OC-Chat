@@ -14,9 +14,9 @@
 #import "ICMessageHelper.h"
 
 @interface ICChatMessageImageCell ()
-
 @property (nonatomic, strong) UIButton *imageBtn;
-
+@property (nonatomic, strong) UIImageView *imageV;
+@property (nonatomic, strong) UIActivityIndicatorView *photoActivityView;
 @end
 
 @implementation ICChatMessageImageCell
@@ -24,7 +24,7 @@
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
 {
     if (self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
-        [self.contentView addSubview:self.imageBtn];
+        [self.contentView addSubview:self.imageV];
     }
     return self;
 }
@@ -43,10 +43,10 @@
     [super setModelFrame:modelFrame];
     ICMediaManager *manager = [ICMediaManager sharedManager];
     NSString *srcUrl = modelFrame.model.mediaPath;
-
-    self.imageBtn.imageView.image = nil;
     
-//    // 没有存过大小就下载，然后保存图片真实大小，再刷新;
+    self.imageV.image = nil;
+    
+    // 没有存过大小就下载，然后保存图片真实大小，再刷新;
     [[SDWebImageManager sharedManager] downloadImageWithURL:[NSURL URLWithString:srcUrl] options:SDWebImageRetryFailed progress:^(NSInteger receivedSize, NSInteger expectedSize) {
         
     } completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, BOOL finished, NSURL *imageURL) {
@@ -61,20 +61,20 @@
             }
 #pragma mark - ------------------
             // 取图片
-            self.imageBtn.frame = modelFrame.picViewF;
+            self.imageV.frame = modelFrame.picViewF;
             self.bubbleView.image = nil;
             if (modelFrame.model.isSender) {    // 发送者
                 UIImage *arrowImage = [manager arrowMeImage:image size:modelFrame.picViewF.size mediaPath:modelFrame.model.mediaPath isSender:modelFrame.model.isSender];
-                [self.imageBtn setBackgroundImage:arrowImage forState:UIControlStateNormal];
+                self.imageV.image = arrowImage;
             } else { /**< 接收者 */
                 NSString *orgImgPath = [manager originImgPath:modelFrame];
                 if ([ICFileTool fileExistsAtPath:orgImgPath]) {
                     UIImage *orgImg = [manager imageWithLocalPath:orgImgPath];
                     UIImage *arrowImage = [manager arrowMeImage:orgImg size:modelFrame.picViewF.size mediaPath:orgImgPath isSender:modelFrame.model.isSender];
-                    [self.imageBtn setBackgroundImage:arrowImage forState:UIControlStateNormal];
+                    self.imageV.image = arrowImage;
                 } else {
                     UIImage *arrowImage = [manager arrowMeImage:image size:modelFrame.picViewF.size mediaPath:modelFrame.model.mediaPath isSender:modelFrame.model.isSender];
-                    [self.imageBtn setBackgroundImage:arrowImage forState:UIControlStateNormal];
+                    self.imageV.image = arrowImage;
                 }
             }
 #pragma mark - ------------------
@@ -114,8 +114,25 @@
     return _imageBtn;
 }
 
+- (UIActivityIndicatorView *)photoActivityView {
+    if (_photoActivityView == nil) {
+        _photoActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+    }
+    return _photoActivityView;
+}
 
 
+- (UIImageView *)imageV {
+    if (_imageV != nil) {
+        return _imageV;
+    }
+    _imageV = [[UIImageView alloc] init];
+    _imageV.layer.masksToBounds = YES;
+    _imageV.userInteractionEnabled = YES;
+    _imageV.layer.cornerRadius = 5;
+    _imageV.clipsToBounds = YES;
+    return _imageV;
+}
 
 
 @end

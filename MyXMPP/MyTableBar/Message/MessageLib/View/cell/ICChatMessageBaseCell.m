@@ -14,6 +14,7 @@
 @interface ICChatMessageBaseCell ()
 
 
+
 @end
 
 @implementation ICChatMessageBaseCell
