@@ -17,7 +17,6 @@
     NSLog(@"bareJid: %@", [xmppMessage.bareJid printObjectAllProperty]);
     NSLog(@"message: %@", [xmppMessage.message printObjectAllProperty]);
     
-    
     ICMessage *message    = [[ICMessage alloc] init];
     
     message.to = xmppMessage.bareJid.user;
