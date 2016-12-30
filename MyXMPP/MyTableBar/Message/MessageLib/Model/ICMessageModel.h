@@ -26,4 +26,8 @@
 @property (nonatomic, copy) NSString *mediaPath;
 
 
+/**
+ 本地媒体路径，当是发送者时，取本地文件
+ */
+@property (nonatomic, copy) NSString *localMediaPath;
 @end

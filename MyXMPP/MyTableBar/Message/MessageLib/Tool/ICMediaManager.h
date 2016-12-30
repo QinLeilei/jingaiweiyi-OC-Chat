@@ -33,6 +33,16 @@
 - (void)clearReuseImageMessage:(ICMessageModel *)message;
 
 // me to you
+
+/**
+ get and save arrow image
+
+ @param image <#image description#>
+ @param imageSize <#imageSize description#>
+ @param mediaPath <#mediaPath description#>
+ @param isSender <#isSender description#>
+ @return <#return value description#>
+ */
 - (UIImage *)arrowMeImage:(UIImage *)image
                      size:(CGSize)imageSize
                 mediaPath:(NSString *)mediaPath
@@ -77,14 +87,31 @@
                                      type:(NSString *)type;
 
 // 小图路径
+
+/**
+ 缩略图路径
+
+ @param fileKey <#fileKey description#>
+ @return <#return value description#>
+ */
 - (NSString *)smallImgPath:(NSString *)fileKey;
 
 
-// 原图路径
+/**
+ 原图路径
+
+ @param messageF <#messageF description#>
+ @return <#return value description#>
+ */
 - (NSString *)originImgPath:(ICMessageFrame *)messageF;
 
 
-// get image with imgName
+/**
+ 根据图片名字获取本地路径
+
+ @param imageName <#imageName description#>
+ @return <#return value description#>
+ */
 - (NSString *)imagePathWithName:(NSString *)imageName;
 
 // get videoImage from sandbox
@@ -96,9 +123,5 @@
                          type:(NSString *)type;
 
 - (NSString *)videoImagePath:(NSString *)fileName;
-
-
-
-
 
 @end

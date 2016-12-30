@@ -16,8 +16,8 @@
 #import "ICFileTool.h"
 #import "NSDate+Extension.h"
 #import "VoiceConverter.h"
-
-
+#import "NSDate+TFCommon.h"
+#import "NSData+MD5Digest.h"
 #define lastUpdateKey [NSString stringWithFormat:@"%@-%@",[ICUser currentUser].eId,@"LastUpdate"]
 #define groupInfoLastUpdateKey [NSString stringWithFormat:@"%@-%@",[ICUser currentUser].eId,@"groupInfoLastUpdate"]
 #define directLastUpdateKey [NSString stringWithFormat:@"%@-%@",[ICUser currentUser].eId,@"directLastUpdate"]
@@ -38,6 +38,75 @@
     ICMessageFrame *modelF = [[ICMessageFrame alloc] init];
     modelF.model = model;
     return modelF;
+}
+
+
+/**
+ 本地消息的全能方法
+
+ @param type <#type description#>
+ @param content <#content description#>
+ @param from <#from description#>
+ @param to <#to description#>
+ @return <#return value description#>
+ */
++ (ICMessageFrame *)createLocalMessageFrameWithType:(NSString *)type content:(NSString *)content
+                                                      from:(NSString *)from
+                                                        to:(NSString *)to localMediaPath:(NSString *)localMediaPath {
+    
+    ICMessage *message    = [[ICMessage alloc] init];
+    message.to            = to;
+    message.from          = from;
+    message.type          = type;
+    message.date          = [ICMessageHelper currentMessageTime];
+    
+    NSString *messageHasPrefix = ICMessageSyetemHasPrefix;
+    if ([type isEqualToString:TypeText]) {
+        messageHasPrefix = ICMessageTextHasPrefix;
+    } else if ([type isEqualToString:TypePic]) {
+        messageHasPrefix = ICMessageImageHasPrefix;
+    } else if ([type isEqualToString:TypeVoice]) {
+        messageHasPrefix = ICMessageAudioHasPrefix;
+    } else if ([type isEqualToString:TypeVideo]) {
+        messageHasPrefix = ICMessageVideoHasPrefix;
+    } else if ([type isEqualToString:TypeFile]) {
+        messageHasPrefix = ICMessageFilesHasPrefix;
+    } else if ([type isEqualToString:TypeSystem]) {
+        messageHasPrefix = ICMessageSyetemHasPrefix;
+    }
+    message.content = [content substringFromIndex:messageHasPrefix.length + 33];
+    message.localMsgId = [content substringWithRange:NSMakeRange(messageHasPrefix.length, 32)];
+    /**< 发送中 */
+    message.deliveryState = ICMessageDeliveryState_Delivering;
+    message.isSender = YES;
+    ICMessageModel *model = [[ICMessageModel alloc] init];
+    model.message = message;
+    model.isSender        = message.isSender;
+    
+    /**< 媒体类型 */
+    if (message.type == TypePic || message.type == TypeVoice || message.type == TypeVideo) {
+        model.mediaPath = message.content;
+        model.localMediaPath = localMediaPath;
+    }
+    
+    ICMessageFrame *modelF = [[ICMessageFrame alloc] init];
+    modelF.model = model;
+    return modelF;
+}
+
+
++ (ICMessageFrame *)createLocalTextMessageFrameWithContent:(NSString *)content
+                                  from:(NSString *)from
+                                    to:(NSString *)to
+{
+    return [self createLocalMessageFrameWithType:TypeText content:content from:from to:to localMediaPath:nil];
+}
+
++ (ICMessageFrame *)createLocalImageMessageFrameWithContent:(NSString *)content
+                                                      from:(NSString *)from
+                                                         to:(NSString *)to localMediaPath:(NSString *)localMediaPath
+{
+    return [self createLocalMessageFrameWithType:TypePic content:content from:from to:to localMediaPath:localMediaPath];;
 }
 
 // 创建一条本地消息
@@ -360,7 +429,13 @@
     
 }
 
-
++ (NSString *)localMsgId:(NSString *)message {
+    NSString *sendTime = [NSDate nowDateFormat:TFDateFormatyyyyMMddHHmmss];
+    NSString *messageAndSendTime = [NSString stringWithFormat:@"%@%@", sendTime, message];
+    // 转成MD5
+    NSString *localMsgId = [NSData MD5HexDigest:[messageAndSendTime dataUsingEncoding:NSUTF8StringEncoding]];
+    return [NSString stringWithFormat:@"%@:", localMsgId];
+}
 
 
 

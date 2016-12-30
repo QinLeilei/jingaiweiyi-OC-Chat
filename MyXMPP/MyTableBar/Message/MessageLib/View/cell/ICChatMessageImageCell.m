@@ -42,48 +42,67 @@
 {
     [super setModelFrame:modelFrame];
     ICMediaManager *manager = [ICMediaManager sharedManager];
-    NSString *srcUrl = modelFrame.model.mediaPath;
     
     self.imageV.image = nil;
+    ICMessageModel *messageModel = modelFrame.model;
+    UIImage *localImage = [manager imageWithLocalPath:messageModel.localMediaPath];
     
-    // 没有存过大小就下载，然后保存图片真实大小，再刷新;
-    [[SDWebImageManager sharedManager] downloadImageWithURL:[NSURL URLWithString:srcUrl] options:SDWebImageRetryFailed progress:^(NSInteger receivedSize, NSInteger expectedSize) {
-        
-    } completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, BOOL finished, NSURL *imageURL) {
-
-        if (image) {
-            // 如果以前没有保存过
-            if (![[ImageSizeManager shareManager] hasSrc:srcUrl]) {
-                [[ImageSizeManager shareManager] saveImage:srcUrl size:image.size];
-                if (self.mediaRefreshBlock) {
-                    self.mediaRefreshBlock(self.currIndexPath);
-                }
+    if (localImage) {
+        if (![[ImageSizeManager shareManager] hasSrc:messageModel.localMediaPath]) {
+            [[ImageSizeManager shareManager] saveImage:messageModel.localMediaPath size:localImage.size];
+            if (self.mediaRefreshBlock) {
+                self.mediaRefreshBlock(self.currIndexPath);
             }
-#pragma mark - ------------------
-            // 取图片
-            self.imageV.frame = modelFrame.picViewF;
-            self.bubbleView.image = nil;
-            if (modelFrame.model.isSender) {    // 发送者
-                UIImage *arrowImage = [manager arrowMeImage:image size:modelFrame.picViewF.size mediaPath:modelFrame.model.mediaPath isSender:modelFrame.model.isSender];
-                self.imageV.image = arrowImage;
-            } else { /**< 接收者 */
-                NSString *orgImgPath = [manager originImgPath:modelFrame];
-                if ([ICFileTool fileExistsAtPath:orgImgPath]) {
-                    UIImage *orgImg = [manager imageWithLocalPath:orgImgPath];
-                    UIImage *arrowImage = [manager arrowMeImage:orgImg size:modelFrame.picViewF.size mediaPath:orgImgPath isSender:modelFrame.model.isSender];
-                    self.imageV.image = arrowImage;
-                } else {
-                    UIImage *arrowImage = [manager arrowMeImage:image size:modelFrame.picViewF.size mediaPath:modelFrame.model.mediaPath isSender:modelFrame.model.isSender];
-                    self.imageV.image = arrowImage;
-                }
-            }
-            
-            [self setupSub];
-            
-#pragma mark - ------------------
-            
         }
-    }];
+        [self setupUIWithModelFrame:modelFrame image:localImage];
+        
+    } else {
+        NSString *mediaPath = modelFrame.model.mediaPath;
+        NSLog(@"mediaPath: %@", mediaPath);
+        
+        // 没有存过大小就下载，然后保存图片真实大小，再刷新;
+        [[SDWebImageManager sharedManager] downloadImageWithURL:[NSURL URLWithString:mediaPath] options:SDWebImageRetryFailed progress:^(NSInteger receivedSize, NSInteger expectedSize) {
+        } completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, BOOL finished, NSURL *imageURL) {
+            
+            if (image) {
+                // 如果以前没有保存过
+                if (![[ImageSizeManager shareManager] hasSrc:mediaPath]) {
+                    [[ImageSizeManager shareManager] saveImage:mediaPath size:image.size];
+                    if (self.mediaRefreshBlock) {
+                        self.mediaRefreshBlock(self.currIndexPath);
+                    }
+                }
+#pragma mark - ------------------
+                [self setupUIWithModelFrame:modelFrame image:image];
+#pragma mark - ------------------
+                
+            }
+        }];
+    }
+}
+
+- (void)setupUIWithModelFrame:(ICMessageFrame *)modelFrame image:(UIImage *)image {
+    ICMediaManager *manager = [ICMediaManager sharedManager];
+    
+    // 取图片
+    self.imageV.frame = modelFrame.picViewF;
+    self.bubbleView.image = nil;
+    if (modelFrame.model.isSender) {    // 发送者
+        UIImage *arrowImage = [manager arrowMeImage:image size:modelFrame.picViewF.size mediaPath:modelFrame.model.mediaPath isSender:modelFrame.model.isSender];
+        self.imageV.image = arrowImage;
+    } else { /**< 接收者 */
+        NSString *orgImgPath = [manager originImgPath:modelFrame];
+        if ([ICFileTool fileExistsAtPath:orgImgPath]) {
+            UIImage *orgImg = [manager imageWithLocalPath:orgImgPath];
+            UIImage *arrowImage = [manager arrowMeImage:orgImg size:modelFrame.picViewF.size mediaPath:orgImgPath isSender:modelFrame.model.isSender];
+            self.imageV.image = arrowImage;
+        } else {
+            UIImage *arrowImage = [manager arrowMeImage:image size:modelFrame.picViewF.size mediaPath:modelFrame.model.mediaPath isSender:modelFrame.model.isSender];
+            self.imageV.image = arrowImage;
+        }
+    }
+    
+    [self setupSub];
 }
 
 - (void)setupSub {
@@ -94,12 +113,11 @@
     self.imageBtn.frame = CGRectMake(0, 0, imageVH, imageVH);
     [self.imageV addSubview:self.photoActivityView];
     self.photoActivityView.center = CGPointMake(imageVW * 0.5, imageVH * 0.5);
-    
 }
 
 - (void)imageBtnClick:(UIButton *)btn
 {
-    if (btn.currentBackgroundImage == nil) {
+    if (self.imageV.image == nil) {
         return;
     }
     CGRect smallRect = [ICMessageHelper photoFramInWindow:btn];

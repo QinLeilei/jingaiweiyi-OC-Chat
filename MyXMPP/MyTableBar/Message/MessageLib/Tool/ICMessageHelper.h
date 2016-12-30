@@ -19,8 +19,38 @@ typedef void(^Finish)(ICMessageFrame *messageF);
 
 
 #pragma mark - 唐飞
+
+/**
+ 创建一条消息
+
+ @param message <#message description#>
+ @return <#return value description#>
+ */
 + (ICMessageFrame *)createMessageFrameWithMessage:(ICMessage *)message;
 
+/**
+ 创建一条本地文本消息
+
+ @param content <#content description#>
+ @param from <#from description#>
+ @param to <#to description#>
+ @return <#return value description#>
+ */
++ (ICMessageFrame *)createLocalTextMessageFrameWithContent:(NSString *)content
+                                                      from:(NSString *)from
+                                                        to:(NSString *)to;
+
+/**
+ 创建一条本地图片消息
+
+ @param content <#content description#>
+ @param from <#from description#>
+ @param to <#to description#>
+ @return <#return value description#>
+ */
++ (ICMessageFrame *)createLocalImageMessageFrameWithContent:(NSString *)content
+                                                       from:(NSString *)from
+                                                         to:(NSString *)to localMediaPath:(NSString *)localMediaPath;
 /**
  *  创建一条本地消息
  *
@@ -105,5 +135,11 @@ typedef void(^Finish)(ICMessageFrame *messageF);
 /// 当前时间
 + (NSInteger)currentMessageTime;
 
+/**
+ 获取本地消息Id
 
+ @param message <#message description#>
+ @return <#return value description#>
+ */
++ (NSString *)localMsgId:(NSString *)message;
 @end

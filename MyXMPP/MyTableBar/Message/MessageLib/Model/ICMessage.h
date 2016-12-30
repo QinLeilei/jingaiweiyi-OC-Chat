@@ -12,6 +12,13 @@
 #pragma mark - 唐飞
 #import "XMPPMessageArchiving_Message_CoreDataObject.h"
 
+extern NSString * const ICMessageTextHasPrefix;
+extern NSString * const ICMessageImageHasPrefix;
+extern NSString * const ICMessageAudioHasPrefix;
+extern NSString * const ICMessageVideoHasPrefix;
+extern NSString * const ICMessageFilesHasPrefix;
+extern NSString * const ICMessageSyetemHasPrefix;;
+
 @interface ICMessage : NSObject
 
 #pragma mark - 唐飞

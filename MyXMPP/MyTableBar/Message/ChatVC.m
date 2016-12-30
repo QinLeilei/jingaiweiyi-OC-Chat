@@ -18,7 +18,7 @@
 #import "SDWebImageManager.h"
 #import "AFNetworking.h"
 #import "MyUpy.h"
-
+#import "NSData+MD5Digest.h"
 #pragma mark - +++++++++++++ add import
 #import "ICChatHearder.h"
 
@@ -125,22 +125,33 @@
 - (void)controllerDidChangeContent:(NSFetchedResultsController *)controller {
     
     XMPPMessageArchiving_Message_CoreDataObject *obj = self.fetchedResultsController.fetchedObjects.lastObject;
-    NSLog(@"obj: %@", [obj printObjectAllProperty]);
-    
+    /**< 此时应该有最新的一个消息～（不管是对方发过来还是我发过去的）自动加入到数据里了，在这里判断，如果是我发送的图片消息~
+     */
     ICMessage *message = [ICMessage resolveWithXMPPMessageArchiving_Message_CoreDataObject:obj];
     ICMessageFrame *messageF = [ICMessageHelper createMessageFrameWithMessage:message];
-    [self addObject:messageF isToBottomAnimation:NO];
+
+    if (message.isSender) { // 是发送者
+        [self.dataSource enumerateObjectsUsingBlock:^(ICMessageFrame *sourceMessageF, NSUInteger idx, BOOL * _Nonnull stop) {
+            ICMessage *sourceMessage = sourceMessageF.model.message;
+            if ([sourceMessage.localMsgId isEqualToString:message.localMsgId]) {
+                sourceMessage.deliveryState = ICMessageDeliveryState_Delivered;
+                [self.tableView reloadData];
+                [self scrollToBottom:NO];
+            }
+        }];
+    } else {
+        [self addObject:messageF isToBottomAnimation:NO];
+    }
 
 }
 
 #pragma mark - ******************** textView代理方法
 - (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text
 {
-    // 判断按下的是不是回车键。
+
     if ([text isEqualToString:@"\n"]) {
         
-        // 自定义的信息发送方法，传入字符串直接发出去。
-        [self sendMessage:textView.text];
+        [self sendTextMessage:textView.text];
         
         self.textView.text = nil;
         
@@ -155,18 +166,37 @@
     UIImage *image = info[UIImagePickerControllerOriginalImage];
     
     [self dismissViewControllerAnimated:YES completion:nil];
-    [self uploadDataToHostWithImage:image];
+    [self sendImageMessage:image];
     
 //    NSData *data = UIImagePNGRepresentation(image);
 //    [self sendMessageWithData:data bodyName:@"image"];
     
 }
 
-#pragma mark - ******************** 给服务器上传图片
-- (void)uploadDataToHostWithImage:(UIImage *)image {
-    //往文件服务器上传图片
-    //1.给图片全名
-    NSString *username = [TFXMPPManager shareInstace].xmppStream.myJID.user;
+#pragma mark - ******************** 发送消息方法
+/** 发送文本信息 */
+- (void)sendTextMessage:(NSString *)message
+{
+    /**< 先创建一条本地文本消息 */
+    // 获取当前时间
+    NSString *localMsgId = [ICMessageHelper localMsgId:message];
+    NSLog(@"localMsgId: %@", localMsgId);
+    ICMessageFrame *messageF = [ICMessageHelper createLocalTextMessageFrameWithContent:[NSString stringWithFormat:@"%@%@%@", ICMessageTextHasPrefix, localMsgId,message] from:[NSString stringWithFormat:@"%@", [[NSUserDefaults standardUserDefaults] objectForKey:XMPPManagerUserName]] to:self.chatJID.user];
+    [self addObject:messageF isToBottomAnimation:NO];
+    
+    // 发送
+    NSString *body = [NSString stringWithFormat:@"%@%@%@", ICMessageTextHasPrefix, localMsgId,message];
+    XMPPMessage *msg = [XMPPMessage messageWithType:@"chat" to:self.chatJID];
+    [msg addBody:body];
+    [[TFXMPPManager shareInstace].xmppStream sendElement:msg];
+}
+
+- (void)sendImageMessage:(UIImage *)image
+{
+    /**< 压缩图片 */
+    UIImage *simpleImg = [UIImage simpleImage:image];
+    /**< 保存压缩的图片到沙盒 */
+    NSString *localMediaPath = [[ICMediaManager sharedManager] saveImage:simpleImg];
     
     // fileName
     NSString *time = [NSDate nowDateFormat:TFDateFormatyyyyMMddHHmmss];
@@ -174,38 +204,31 @@
     // 文件夹
     NSString *savekey = [NSString stringWithFormat:@"%@%@", @"userinfo/head_pic/", fileName];
     // 下载路径
-    NSString *imageUrl = [NSString stringWithFormat:@"%@%@",kGetUpy, savekey];
-    NSLog(@"image: %@, upy image: %@", image, imageUrl);
+    NSString *message = [NSString stringWithFormat:@"%@%@",kGetUpy, savekey];
     
+    /**< 创建本地消息 */
+    NSString *localMsgId = [ICMessageHelper localMsgId:message];
+    NSLog(@"localMsgId: %@", localMsgId);
+    ICMessageFrame *messageF = [ICMessageHelper createLocalImageMessageFrameWithContent:[NSString stringWithFormat:@"%@%@%@", ICMessageImageHasPrefix, localMsgId, message] from:[NSString stringWithFormat:@"%@", [[NSUserDefaults standardUserDefaults] objectForKey:XMPPManagerUserName]] to:self.chatJID.user localMediaPath:localMediaPath];
+    [self addObject:messageF isToBottomAnimation:NO];
+    
+    // 发送upy
     MyUpy *upy = [[MyUpy alloc] init];
-    [upy uploadImage:image savekey:savekey];
+    [upy uploadImage:simpleImg savekey:savekey];
     [upy setProgress:^(NSProgress *uploadProgress) {
         
     } success:^(NSURLSessionDataTask *task, id responseObject) {
         //请求成功
         NSLog(@"图片发送成功...");
-        
         //上传成功,发送消息给好友
-        NSString *body = [NSString stringWithFormat:@"image:%@",imageUrl];
+        NSString *body = [NSString stringWithFormat:@"%@%@%@", ICMessageImageHasPrefix, localMsgId, message];
         XMPPMessage *msg = [XMPPMessage messageWithType:@"chat" to:self.chatJID];
         [msg addBody:body];
         [[TFXMPPManager shareInstace].xmppStream sendElement:msg];
         
     } failure:^(NSURLSessionDataTask *task, NSError *error) {
         NSLog(@"图片发送失败...");
-        
     }];
-}
-
-#pragma mark - ******************** 发送消息方法
-/** 发送信息 */
-- (void)sendMessage:(NSString *)message
-{
-    NSString *body = [NSString stringWithFormat:@"text:%@",message];
-    XMPPMessage *msg = [XMPPMessage messageWithType:@"chat" to:self.chatJID];
-    [msg addBody:body];
-    
-    [[TFXMPPManager shareInstace].xmppStream sendElement:msg];
 }
 
 /** 发送二进制文件 */
@@ -234,7 +257,8 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    return self.fetchedResultsController.fetchedObjects.count;
+//    return self.fetchedResultsController.fetchedObjects.count;
+    return [self addNumberOfRowsWithTableView:tableView inSection:section];
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
@@ -662,7 +686,8 @@
 - (void)scrollToBottom:(BOOL)animation {
     
     // 1. indexPath，应该是最末一行的indexPath
-    NSInteger count = self.fetchedResultsController.fetchedObjects.count;
+//    NSInteger count = self.fetchedResultsController.fetchedObjects.count;
+    NSInteger count = self.dataSource.count;
     if (count == 0)
         return;
     
@@ -732,6 +757,8 @@
 }
 
 - (UITableViewCell *)addCellWithTableView:(UITableView *)tableView andIndexPath:(NSIndexPath *)indexPath {
+    NSLog(@"indexPath.row: %zd", indexPath.row);
+    
     id obj                            = self.dataSource[indexPath.row];
     
     if ([obj isKindOfClass:[NSString class]]) {
@@ -740,7 +767,7 @@
         ICMessageFrame *modelFrame     = (ICMessageFrame *)obj;
         NSString *ID                   = modelFrame.model.message.type;
         NSLog(@"ID: %@", ID);
-
+        
         if ([ID isEqualToString:TypeSystem]) {
             ICChatSystemCell *cell = [ICChatSystemCell cellWithTableView:tableView reusableId:ID];
             cell.messageF              = modelFrame;
@@ -752,7 +779,6 @@
         cell.modelFrame                = modelFrame;
         // 媒体刷新
         cell.mediaRefreshBlock = ^(NSIndexPath *currIndexPath) {
-            
             NSLog(@"刷新...");
             id obj                            = self.dataSource[indexPath.row];
             if ([obj isKindOfClass:[NSString class]]) {
@@ -768,6 +794,10 @@
         
         return cell;
     }
+}
+
+- (NSInteger)addNumberOfRowsWithTableView:(UITableView *)tableView inSection:(NSInteger )section {
+    return self.dataSource.count;
 }
 
 - (CGFloat)addHeightWithTableView:(UITableView *)tableView andIndexPath:(NSIndexPath *)indexPath {

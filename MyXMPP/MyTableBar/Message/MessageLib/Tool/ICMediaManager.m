@@ -299,12 +299,4 @@ static UIImage *_failedImage;
     return _photoCache;
 }
 
-
-
-
-
-
-
-
-
 @end
