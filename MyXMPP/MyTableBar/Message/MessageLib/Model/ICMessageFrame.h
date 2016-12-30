@@ -7,8 +7,10 @@
 //
 
 #import <Foundation/Foundation.h>
-
+#define kMediaItemWidth (0.6 *kScreen_Width)
+#define kMediaItemMaxHeight (0.5 *kScreen_Height)
 @class ICMessageModel;
+
 
 @interface ICMessageFrame : NSObject
 

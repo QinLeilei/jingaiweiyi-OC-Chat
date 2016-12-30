@@ -46,7 +46,7 @@ static UIImage *_failedImage;
 // 使用文件名为key
 - (UIImage *)imageWithLocalPath:(NSString *)localPath
 {
-    NSLog(@"localPath.lastPathComponent: %@", localPath.lastPathComponent);
+//    NSLog(@"localPath.lastPathComponent: %@", localPath.lastPathComponent);
     
     if ([self.photoCache objectForKey:localPath.lastPathComponent]) {
         return [self.photoCache objectForKey:localPath.lastPathComponent];
@@ -179,6 +179,8 @@ static UIImage *_failedImage;
     NSString *mainFilePath = [self createFolderPahtWithMainFolder:chachePath childFolder:kMyPic];
     NSString *filePath = [mainFilePath stringByAppendingPathComponent:fileName];
     [imageData writeToFile:filePath atomically:NO];
+    NSLog(@"filePath: %@", filePath);
+    
     return filePath;
 }
 

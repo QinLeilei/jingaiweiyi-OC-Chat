@@ -18,8 +18,7 @@
 #define APP_WIDTH ([UIScreen mainScreen].bounds.size.width)
 #define APP_HEIGHT ([UIScreen mainScreen].bounds.size.height)
 
-#define kMediaItemWidth (0.6 *kScreen_Width)
-#define kMediaItemMaxHeight (0.5 *kScreen_Height)
+
 
 @implementation ICMessageFrame
 
@@ -77,19 +76,32 @@
             _topViewF             = CGRectMake(CGRectGetMinX(_headImageViewF) - headToBubble - topViewSize.width-headToBubble-5, cellMargin,topViewSize.width,topViewSize.height);
             _chatLabelF           = CGRectMake(x, topViewH + cellMargin + bubblePadding, chateLabelSize.width, chateLabelSize.height);
         } else if ([model.message.type isEqualToString:TypePic]) { // 图片
-            CGSize imageSize = CGSizeZero;
-            imageSize = [[ImageSizeManager shareManager] sizeWithSrc:model.mediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
+            CGSize imagesize = CGSizeZero;
+            ICMediaManager *manager = [ICMediaManager sharedManager];
+            UIImage *localImage = [manager imageWithLocalPath:model.localMediaPath];
+            NSLog(@"localImage: %@", localImage);
             
-            NSLog(@"imageSize: %@", NSStringFromCGSize(imageSize));
+            if (localImage) {
+                
+                if (![[ImageSizeManager shareManager] hasSrc:model.localMediaPath]) {
+                    [[ImageSizeManager shareManager] saveImage:model.localMediaPath size:localImage.size];
+                }
+                
+                imagesize = [[ImageSizeManager shareManager] sizeWithSrc:model.localMediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
+            } else {
+                imagesize = [[ImageSizeManager shareManager] sizeWithSrc:model.mediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
+            }
             
-            imageSize.width        = imageSize.width > timeSize.width ? imageSize.width : timeSize.width;
-            CGSize topViewSize     = CGSizeMake(imageSize.width-arrowWidth, topViewH);
-            CGSize bubbleSize      = CGSizeMake(imageSize.width, imageSize.height);
+            NSLog(@"imagesize: %@", NSStringFromCGSize(imagesize));
+            
+            imagesize.width        = imagesize.width > timeSize.width ? imagesize.width : timeSize.width;
+            CGSize topViewSize     = CGSizeMake(imagesize.width-arrowWidth, topViewH);
+            CGSize bubbleSize      = CGSizeMake(imagesize.width, imagesize.height);
             CGFloat bubbleX        = CGRectGetMinX(_headImageViewF)-headToBubble-bubbleSize.width;
             _bubbleViewF           = CGRectMake(bubbleX, cellMargin+topViewH, bubbleSize.width, bubbleSize.height);
             CGFloat x              = CGRectGetMinX(_bubbleViewF);
             _topViewF             = CGRectMake(x, cellMargin,topViewSize.width,topViewSize.height);
-            _picViewF              = CGRectMake(x, cellMargin+topViewH, imageSize.width, imageSize.height);
+            _picViewF              = CGRectMake(x, cellMargin+topViewH, imagesize.width, imagesize.height);
         } else if ([model.message.type isEqualToString:TypeVoice]) { // 语音消息
             CGFloat bubbleViewW     = 100;
             _bubbleViewF = CGRectMake(CGRectGetMinX(_headImageViewF) - headToBubble - bubbleViewW, cellMargin+topViewH, bubbleViewW, 40);
@@ -148,20 +160,30 @@
             _topViewF     = CGRectMake(CGRectGetMinX(_bubbleViewF)+arrowWidth, cellMargin, topViewSize.width, topViewSize.height);
             _chatLabelF   = CGRectMake(x, cellMargin + bubblePadding + topViewH, chateLabelSize.width, chateLabelSize.height);
         } else if ([model.message.type isEqualToString:TypePic]) {
+
+            CGSize imagesize = CGSizeZero;
+            ICMediaManager *manager = [ICMediaManager sharedManager];
+            UIImage *localImage = [manager imageWithLocalPath:model.localMediaPath];
+            if (localImage) {
+                
+                if (![[ImageSizeManager shareManager] hasSrc:model.localMediaPath]) {
+                    [[ImageSizeManager shareManager] saveImage:model.localMediaPath size:localImage.size];
+                }
+                imagesize = [[ImageSizeManager shareManager] sizeWithSrc:model.localMediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
+            } else {
+                imagesize = [[ImageSizeManager shareManager] sizeWithSrc:model.mediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
+            }
             
-            CGSize imageSize = CGSizeZero;
-            imageSize = [[ImageSizeManager shareManager] sizeWithSrc:model.mediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
-            NSLog(@"imageSize: %@", NSStringFromCGSize(imageSize));
+            NSLog(@"imagesize: %@", NSStringFromCGSize(imagesize));
             
-            
-            imageSize.width        = imageSize.width > cellMinW ? imageSize.width : cellMinW;
-            CGSize topViewSize     = CGSizeMake(imageSize.width-arrowWidth, topViewH);
-            CGSize bubbleSize      = CGSizeMake(imageSize.width, imageSize.height);
+            imagesize.width        = imagesize.width > cellMinW ? imagesize.width : cellMinW;
+            CGSize topViewSize     = CGSizeMake(imagesize.width-arrowWidth, topViewH);
+            CGSize bubbleSize      = CGSizeMake(imagesize.width, imagesize.height);
             CGFloat bubbleX        = CGRectGetMaxX(_headImageViewF)+headToBubble;
             _bubbleViewF           = CGRectMake(bubbleX, cellMargin+topViewH, bubbleSize.width, bubbleSize.height);
             CGFloat x              = CGRectGetMinX(_bubbleViewF);
             _topViewF              = CGRectMake(x+arrowWidth, cellMargin, topViewSize.width, topViewSize.height);
-            _picViewF              = CGRectMake(x, cellMargin+topViewH, imageSize.width, imageSize.height);
+            _picViewF              = CGRectMake(x, cellMargin+topViewH, imagesize.width, imagesize.height);
             
         } else if ([model.message.type isEqualToString:TypeVoice]) {   // 语音
             CGFloat bubbleViewW = cellMinW + 20; // 加上一个红点的宽度

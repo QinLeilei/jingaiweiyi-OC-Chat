@@ -41,19 +41,25 @@
 - (void)setModelFrame:(ICMessageFrame *)modelFrame
 {
     [super setModelFrame:modelFrame];
-    ICMediaManager *manager = [ICMediaManager sharedManager];
-    
     self.imageV.image = nil;
-    ICMessageModel *messageModel = modelFrame.model;
-    UIImage *localImage = [manager imageWithLocalPath:messageModel.localMediaPath];
+    
+    ICMediaManager *manager = [ICMediaManager sharedManager];
+    ICMessageModel *model = modelFrame.model;
+    UIImage *localImage = [manager imageWithLocalPath:model.localMediaPath];
+    
+    NSLog(@"localImage: %@", localImage);
     
     if (localImage) {
-        if (![[ImageSizeManager shareManager] hasSrc:messageModel.localMediaPath]) {
-            [[ImageSizeManager shareManager] saveImage:messageModel.localMediaPath size:localImage.size];
+        if (![[ImageSizeManager shareManager] hasSrc:model.localMediaPath]) {
+            [[ImageSizeManager shareManager] saveImage:model.localMediaPath size:localImage.size];
             if (self.mediaRefreshBlock) {
                 self.mediaRefreshBlock(self.currIndexPath);
             }
         }
+        
+        CGSize imageSize = [[ImageSizeManager shareManager] sizeWithSrc:model.mediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
+        NSLog(@"imageSize: %@", NSStringFromCGSize(imageSize));
+        
         [self setupUIWithModelFrame:modelFrame image:localImage];
         
     } else {
@@ -83,9 +89,11 @@
 
 - (void)setupUIWithModelFrame:(ICMessageFrame *)modelFrame image:(UIImage *)image {
     ICMediaManager *manager = [ICMediaManager sharedManager];
-    
     // 取图片
     self.imageV.frame = modelFrame.picViewF;
+    
+    NSLog(@"picViewF: %@", NSStringFromCGRect(modelFrame.picViewF));
+    
     self.bubbleView.image = nil;
     if (modelFrame.model.isSender) {    // 发送者
         UIImage *arrowImage = [manager arrowMeImage:image size:modelFrame.picViewF.size mediaPath:modelFrame.model.mediaPath isSender:modelFrame.model.isSender];

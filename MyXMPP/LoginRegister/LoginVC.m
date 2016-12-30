@@ -136,6 +136,8 @@
                 [[[UIAlertView alloc] initWithTitle:@"提示" message:errorMessage delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil] show];
             }];
         }];
+        
+        _loginButton.enabled = YES;
     }
     return _loginButton;
 }
@@ -149,6 +151,8 @@
         _nameTextF.placeholder = @"账号";
         _nameTextF.delegate = self;
         _nameTextF.textAlignment = NSTextAlignmentCenter;
+        
+        _nameTextF.text = @"test002";
     }
     return _nameTextF;
 }
@@ -162,6 +166,8 @@
         _passwordTextF.borderStyle = UITextBorderStyleRoundedRect;
         _passwordTextF.placeholder = @"密码";
         _passwordTextF.textAlignment = NSTextAlignmentCenter;
+        
+        _passwordTextF.text = @"123456";
     }
     return _passwordTextF;
 }
