@@ -21,7 +21,7 @@
     NSDate *_endDate;
     void (^recordFinish)(NSString *recordPath);
 }
-
+@property (nonatomic, strong) NSCache *voiceCache;
 @property (nonatomic, strong) NSDictionary *recordSetting;
 
 @end
@@ -273,9 +273,47 @@
     return second;
 }
 
+- (void)clearCaches {
+    [self.voiceCache removeAllObjects];
+}
 
+- (NSCache *)voiceCache
+{
+    if (nil == _voiceCache) {
+        _voiceCache = [[NSCache alloc] init];
+    }
+    return _voiceCache;
+}
 
+- (NSData *)voiceDataWithLocalPath:(NSString *)localPath {
+    if ([self.voiceCache objectForKey:localPath.lastPathComponent]) {
+        return [self.voiceCache objectForKey:localPath.lastPathComponent];
+    } else if (![localPath hasSuffix:@".wav"]) {
+        return nil;
+    }
+    NSData *voiceData = [NSData dataWithContentsOfFile:localPath];
+    if (voiceData) {
+        [self.voiceCache setObject:voiceData forKey:localPath.lastPathComponent];
+    }
+    return voiceData;
+}
 
+- (BOOL)voiceFileExistsAtLocalPath:(NSString *)localPath {
+    if ([self.voiceCache objectForKey:localPath.lastPathComponent]) {
+         return YES;
+    } else if (![localPath hasSuffix:@".wav"]) {
+        return NO;
+    }
+    NSData *voiceData = [NSData dataWithContentsOfFile:localPath];
+    if (voiceData) {
+        return YES;
+    }
+    return NO;
+}
+
+- (void)saveVoiceData:(NSData *)data localPath:(NSString *)localPath {
+    [data writeToFile:localPath atomically:YES];
+}
 
 
 @end

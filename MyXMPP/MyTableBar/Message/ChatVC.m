@@ -22,34 +22,28 @@
 #pragma mark - +++++++++++++ add import
 #import "ICChatHearder.h"
 
-@interface ChatVC () <UITableViewDataSource, UITableViewDelegate, NSFetchedResultsControllerDelegate, UITextViewDelegate,UIImagePickerControllerDelegate,UINavigationControllerDelegate>
+@interface ChatVC () <UITableViewDataSource, UITableViewDelegate, NSFetchedResultsControllerDelegate, UITextViewDelegate,UINavigationControllerDelegate, ICChatBoxViewControllerDelegate, ICRecordManagerDelegate>
 {
-    UITapGestureRecognizer *_tap;   // 键盘收起手势
-    UIPanGestureRecognizer *_pan;
-    
     CGRect _smallRect;
     CGRect _bigRect;
+    
+    BOOL   _isKeyBoardAppear;     // 键盘是否弹出来了
 }
 
 @property (strong, nonatomic) UITableView *tableView;
 @property (nonatomic, strong) NSFetchedResultsController *fetchedResultsController;
 @property (strong, nonatomic) UITextView *textView;
 
-/** 录音文本 */
-@property (nonatomic, strong) UITextField *recordText;
-/** 输入视图 */
-@property (strong, nonatomic) UIView *inputMessageView;
-@property(nonatomic,strong) UITableViewCell *nowCell;
-
-@property(nonatomic,strong) NSIndexPath *nowIndexPath;
-
-@property (nonatomic,assign) CGFloat nowHeight;
-
 @property(nonatomic,strong) NSCache *cache;
 
 #pragma mark - +++++++++++++ add property
 @property (nonatomic, strong) NSMutableArray *dataSource;
-
+@property (nonatomic, strong) ICChatBoxViewController *chatBoxVC;
+@property (nonatomic, strong) UIImageView *currentVoiceIcon;
+@property (nonatomic, strong) UIImageView *presentImageView;
+@property (nonatomic, strong) NSTimer *timer;
+@property (nonatomic, strong) ICVoiceHud *voiceHud;
+@property (nonatomic, copy) NSString *voicePath;
 @end
 
 @implementation ChatVC
@@ -76,23 +70,10 @@
 
 - (void)setupUI {
     
+    [self addChildViewController:self.chatBoxVC];
+    [self.view addSubview:self.chatBoxVC.view];
     [self.view addSubview:self.tableView];
-    
-    [self.view addSubview:self.inputMessageView];
-    
-    // 监听键盘变化
-    //通知 监听键盘将要出现
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyBoardFramWillChange:) name:UIKeyboardWillChangeFrameNotification object:nil];
-    //通知 监听键盘将要消失
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyBoardWillDisappear:) name:UIKeyboardWillHideNotification object:nil];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardDidChanged) name:UIKeyboardDidChangeFrameNotification object:nil];
-    
-    // 键盘收起手势
-    _tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(keyboardHidden)];
-    _pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(keyboardHidden)];
-    
-    [self scrollToBottom:NO];
-    
+
 }
 
 - (void)setData {
@@ -102,21 +83,23 @@
         
         ICMessage *message = [ICMessage resolveWithXMPPMessageArchiving_Message_CoreDataObject:obj];
         ICMessageFrame *messageF = [ICMessageHelper createMessageFrameWithMessage:message];
-        [self addObject:messageF isToBottomAnimation:NO];
+        [self addObject:messageF isToBottomAnimation:NO isSender:NO];
     }];
     
 }
 
 // 增加数据源并刷新
-- (void)addObject:(ICMessageFrame *)messageF isToBottomAnimation:(BOOL)animation
+- (void)addObject:(ICMessageFrame *)messageF isToBottomAnimation:(BOOL)animation isSender:(BOOL)isSender
 {
     [self.dataSource addObject:messageF];
     [self.tableView reloadData];
-    [self scrollToBottom:animation];
+    if (_isKeyBoardAppear || isSender) {
+        [self scrollToBottom:animation];
+    }
 }
 
 - (void)keyboardHidden {
-    [self.inputMessageView resignFirstResponder];
+//    [self.inputMessageView resignFirstResponder];
     [self.view endEditing:NO];
 }
 
@@ -135,42 +118,15 @@
             ICMessage *sourceMessage = sourceMessageF.model.message;
             if ([sourceMessage.localMsgId isEqualToString:message.localMsgId]) {
                 sourceMessage.deliveryState = ICMessageDeliveryState_Delivered;
+                
                 [self.tableView reloadData];
                 [self scrollToBottom:NO];
             }
         }];
     } else {
-        [self addObject:messageF isToBottomAnimation:NO];
+        [self addObject:messageF isToBottomAnimation:NO isSender:YES];
     }
 
-}
-
-#pragma mark - ******************** textView代理方法
-- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text
-{
-
-    if ([text isEqualToString:@"\n"]) {
-        
-        [self sendTextMessage:textView.text];
-        
-        self.textView.text = nil;
-        
-        return NO;
-    }
-    return YES;
-}
-
-#pragma mark - ******************** imgPickerController代理方法
-- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary *)info
-{
-    UIImage *image = info[UIImagePickerControllerOriginalImage];
-    
-    [self dismissViewControllerAnimated:YES completion:nil];
-    [self sendImageMessage:image];
-    
-//    NSData *data = UIImagePNGRepresentation(image);
-//    [self sendMessageWithData:data bodyName:@"image"];
-    
 }
 
 #pragma mark - ******************** 发送消息方法
@@ -182,7 +138,7 @@
     NSString *localMsgId = [ICMessageHelper localMsgId:message];
     NSLog(@"localMsgId: %@", localMsgId);
     ICMessageFrame *messageF = [ICMessageHelper createLocalTextMessageFrameWithContent:[NSString stringWithFormat:@"%@%@%@", ICMessageTextHasPrefix, localMsgId,message] from:[NSString stringWithFormat:@"%@", [[NSUserDefaults standardUserDefaults] objectForKey:XMPPManagerUserName]] to:self.chatJID.user];
-    [self addObject:messageF isToBottomAnimation:NO];
+    [self addObject:messageF isToBottomAnimation:NO isSender:YES];
     
     // 发送
     NSString *body = [NSString stringWithFormat:@"%@%@%@", ICMessageTextHasPrefix, localMsgId,message];
@@ -190,17 +146,13 @@
     [msg addBody:body];
     [[TFXMPPManager shareInstace].xmppStream sendElement:msg];
 }
-
-- (void)sendImageMessage:(UIImage *)image
+/**< 发送图片消息 */
+- (void)sendImageMessage:(UIImage *)image localMediaPath:(NSString *)localMediaPath
 {
-    /**< 压缩图片 */
-    UIImage *simpleImg = [UIImage simpleImage:image];
-    /**< 保存压缩的图片到沙盒 */
-    NSString *localMediaPath = [[ICMediaManager sharedManager] saveImage:simpleImg];
     
     // fileName
-    NSString *time = [NSDate nowDateFormat:TFDateFormatyyyyMMddHHmmss];
-    NSString *fileName = [NSString stringWithFormat:@"headImgae%@%@.png",@"1025",time];
+    NSString *nowTime = [NSDate nowDateFormat:TFDateFormatyyyyMMddHHmmss];
+    NSString *fileName = [NSString stringWithFormat:@"chatImage%@%@.png",@"1025",nowTime];
     // 文件夹
     NSString *savekey = [NSString stringWithFormat:@"%@%@", @"userinfo/head_pic/", fileName];
     // 下载路径
@@ -210,16 +162,16 @@
     NSString *localMsgId = [ICMessageHelper localMsgId:message];
     NSLog(@"localMsgId: %@", localMsgId);
     ICMessageFrame *messageF = [ICMessageHelper createLocalImageMessageFrameWithContent:[NSString stringWithFormat:@"%@%@%@", ICMessageImageHasPrefix, localMsgId, message] from:[NSString stringWithFormat:@"%@", [[NSUserDefaults standardUserDefaults] objectForKey:XMPPManagerUserName]] to:self.chatJID.user localMediaPath:localMediaPath];
-    [self addObject:messageF isToBottomAnimation:NO];
+    [self addObject:messageF isToBottomAnimation:NO isSender:YES];
     
     // 发送upy
     MyUpy *upy = [[MyUpy alloc] init];
-    [upy uploadImage:simpleImg savekey:savekey];
+    [upy uploadImage:image savekey:savekey];
     [upy setProgress:^(NSProgress *uploadProgress) {
         
     } success:^(NSURLSessionDataTask *task, id responseObject) {
         //请求成功
-        NSLog(@"图片发送成功...");
+        NSLog(@"图片上传成功...");
         //上传成功,发送消息给好友
         NSString *body = [NSString stringWithFormat:@"%@%@%@", ICMessageImageHasPrefix, localMsgId, message];
         XMPPMessage *msg = [XMPPMessage messageWithType:@"chat" to:self.chatJID];
@@ -227,8 +179,50 @@
         [[TFXMPPManager shareInstace].xmppStream sendElement:msg];
         
     } failure:^(NSURLSessionDataTask *task, NSError *error) {
-        NSLog(@"图片发送失败...");
+        NSLog(@"图片上传失败...");
     }];
+}
+/**< 发送语音消息方法 */
+- (void)sendVoiceMessageWithlocalMediaPath:(NSString *)localMediaPath
+{
+    NSLog(@"localMediaPath: %@", localMediaPath);
+    
+    // fileName
+    NSString *nowTime = [NSDate nowDateFormat:TFDateFormatyyyyMMddHHmmss];
+    NSString *fileName = [NSString stringWithFormat:@"chatVoice%@%@.wav",@"1025",nowTime];
+    // 文件夹
+    NSString *savekey = [NSString stringWithFormat:@"%@%@", @"userinfo/head_pic/", fileName];
+    // 下载路径
+    NSString *message = [NSString stringWithFormat:@"%@%@",kGetUpy, savekey];
+    
+    /**< 创建本地消息 */
+    NSString *localMsgId = [ICMessageHelper localMsgId:message];
+    NSLog(@"localMsgId: %@", localMsgId);
+    
+    ICMessageFrame *messageF = [ICMessageHelper createLocalVoiceMessageFrameWithContent:[NSString stringWithFormat:@"%@%@%@", ICMessageVoiceHasPrefix, localMsgId, message] from:[NSString stringWithFormat:@"%@", [[NSUserDefaults standardUserDefaults] objectForKey:XMPPManagerUserName]] to:self.chatJID.user localMediaPath:localMediaPath];
+    [self addObject:messageF isToBottomAnimation:NO isSender:YES];
+    
+    NSData *voiceData = [[ICRecordManager shareManager] voiceDataWithLocalPath:localMediaPath];
+    // 上传
+    MyUpy *upy = [[MyUpy alloc] init];
+    [upy uploadVoiceData:voiceData savekey:savekey];
+    [upy setProgress:^(NSProgress *uploadProgress) {
+        
+    } success:^(NSURLSessionDataTask *task, id responseObject) {
+        //请求成功
+        NSLog(@"语音上传成功...");
+        
+        //上传成功,发送消息给好友
+        NSString *body = [NSString stringWithFormat:@"%@%@%@", ICMessageVoiceHasPrefix, localMsgId, message];
+        XMPPMessage *msg = [XMPPMessage messageWithType:@"chat" to:self.chatJID];
+        [msg addBody:body];
+        [[TFXMPPManager shareInstace].xmppStream sendElement:msg];
+        
+    } failure:^(NSURLSessionDataTask *task, NSError *error) {
+        NSLog(@"语音上传失败...");
+    }];
+
+    
 }
 
 /** 发送二进制文件 */
@@ -393,70 +387,7 @@
     return height;
 }
 
-- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView
-{
-    [self.view endEditing:YES];
-}
-
-#pragma mark - 录音
-- (void)recordStart:(UIButton *)sender
-{
-    [sender setTitle:@"录制中..." forState:UIControlStateNormal];
-    [[TFRecordTools sharedRecorder] startRecord];
-}
-
-- (void)recordCancel:(UIButton *)sender
-{
-    [sender setTitle:@"重新录制" forState:UIControlStateNormal];
-    [[TFRecordTools sharedRecorder].recorder stop];
-}
-
-- (void)recordFinish:(UIButton *)sender
-{
-    [sender setTitle:@"录音发送中..." forState:UIControlStateNormal];
-    [[TFRecordTools sharedRecorder] stopRecordSuccess:^(NSURL *url, NSTimeInterval time) {
-        
-        // 发送声音数据
-        NSData *data = [NSData dataWithContentsOfURL:url];
-        [self sendMessageWithData:data bodyName:[NSString stringWithFormat:@"audio"]];
-        
-        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, 0.5 *NSEC_PER_SEC);
-        dispatch_after(popTime, dispatch_get_main_queue(), ^{
-            [sender setTitle:@"开始录音" forState:UIControlStateNormal];
-        });
-        
-    } andFailed:^{
-        
-        [[[UIAlertView alloc] initWithTitle:@"提示" message:@"时间太短" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil, nil] show];
-        [sender setTitle:@"开始录音" forState:UIControlStateNormal];
-    }];
-
-}
 #pragma mark - ******************** 懒加载
-- (UITextField *)recordText {
-    if (_recordText == nil) {
-        _recordText = [[UITextField alloc] init];
-        
-        UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
-        [btn setTitle:@"开始录音" forState:UIControlStateNormal];
-        _recordText.inputView = btn;
-        
-        [btn mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.height.mas_offset(100);
-        }];
-        
-        // 开始
-        [btn addTarget:self action:@selector(recordStart:) forControlEvents:UIControlEventTouchDown];
-        // 取消
-        [btn addTarget:self action:@selector(recordCancel:) forControlEvents: UIControlEventTouchDragExit | UIControlEventTouchUpOutside];
-        //完成
-        [btn addTarget:self action:@selector(recordFinish:) forControlEvents:UIControlEventTouchUpInside];
-        
-        [self.inputMessageView addSubview:_recordText];
-    }
-    return _recordText;
-}
-
 - (NSCache *)cache{
     if (_cache == nil) {
         _cache = [[NSCache alloc]init];
@@ -516,171 +447,44 @@
     if (_tableView != nil) {
         return _tableView;
     }
-    _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 0, kScreen_Width, kScreen_Height - 44)];
+    _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, kStatusBar_And_NavigationBar_Height, kScreen_Width, kScreen_Height - HEIGHT_TABBAR - kStatusBar_And_NavigationBar_Height)];
     _tableView.tableFooterView = [[UIView alloc] init];
     _tableView.delegate = self;
     _tableView.dataSource = self;
     _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
     _tableView.backgroundColor = [UIColor colorWithWhite:.95 alpha:1];
-    // 设置表格的背景图片
-//    _tableView.backgroundView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"login_bg.jpg"]];
-
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+//    _tableView.backgroundColor = [UIColor yellowColor];
     return _tableView;
 }
-
-- (UIView *)inputMessageView {
-    if (_inputMessageView != nil) {
-        return _inputMessageView;
+- (UIImageView *)presentImageView
+{
+    if (!_presentImageView) {
+        _presentImageView = [[UIImageView alloc] init];
     }
-    _inputMessageView = [[UIView alloc] initWithFrame:CGRectMake(0, kScreen_Height - 44, kScreen_Width, 44)];
-    // 录音
-    UIButton *recordButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    [recordButton setBackgroundImage:[UIImage imageNamed:@"chat_bottom_voice_nor"] forState:UIControlStateNormal];
-    [_inputMessageView addSubview:recordButton];
-    
-    [recordButton mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.bottom.equalTo(_inputMessageView.mas_bottom).offset(-5);
-        make.size.mas_equalTo(CGSizeMake(34, 34));
-        make.left.equalTo(_inputMessageView.mas_left).offset(8);
-    }];
-    
-    [recordButton handleClickEvent:UIControlEventTouchUpInside withClickBlock:^(UIButton *sender) {
-        if (![self.recordText isFirstResponder]) {
-            // 切换焦点，弹出录音按钮
-            [self.recordText becomeFirstResponder];
-        } else {
-            [self.recordText resignFirstResponder];
-        }
-    }];
-    
-    // 文本
-    [_inputMessageView addSubview:self.textView];
-    [self.textView mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.left.equalTo(recordButton.mas_right).offset(8);
-        make.bottom.equalTo(_inputMessageView.mas_bottom).offset(-7);
-        make.height.mas_equalTo(30);
-    }];
-    
-    // 表情
-    UIButton *emojiButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    [emojiButton setBackgroundImage:[UIImage imageNamed:@"chat_bottom_smile_nor"] forState:UIControlStateNormal];
-    [_inputMessageView addSubview:emojiButton];
-    
-    [emojiButton mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.bottom.equalTo(_inputMessageView.mas_bottom).offset(-5);
-        make.size.mas_equalTo(CGSizeMake(34, 34));
-        make.left.equalTo(self.textView.mas_right).offset(8);
-    }];
-    
-    // 添加
-    UIButton *addButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    [addButton setBackgroundImage:[UIImage imageNamed:@"chat_bottom_up_nor"] forState:UIControlStateNormal];
-    [_inputMessageView addSubview:addButton];
-    
-    [addButton mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.bottom.equalTo(_inputMessageView.mas_bottom).offset(-5);
-        make.size.mas_equalTo(CGSizeMake(34, 34));
-        make.left.equalTo(emojiButton.mas_right).offset(8);
-        make.right.equalTo(_inputMessageView.mas_right).offset(-8);
-    }];
-    
-    [addButton handleClickEvent:UIControlEventTouchUpInside withClickBlock:^(UIButton *sender) {
-        UIImagePickerController *picker = [[UIImagePickerController alloc]init];
-        
-        picker.delegate = self;
-        [self presentViewController:picker animated:YES completion:nil];
-    }];
-    
-//    _inputMessageView.backgroundColor = [UIColor whiteColor];
-    _inputMessageView.backgroundColor = [UIColor whiteColor];
-    return _inputMessageView;
+    return _presentImageView;
 }
 
-- (UITextView *)textView {
-    if (_textView != nil) {
-        return _textView;
+/** 录音时，提示的View */
+- (ICVoiceHud *)voiceHud
+{
+    if (!_voiceHud) {
+        _voiceHud = [[ICVoiceHud alloc] initWithFrame:CGRectMake(0, 0, 155, 155)];
+        _voiceHud.hidden = YES;
+        [self.view addSubview:_voiceHud];
+        _voiceHud.center = CGPointMake(App_Frame_Width/2, APP_Frame_Height/2);
     }
-    _textView = [[UITextView alloc] init];
-    _textView.font = [UIFont systemFontOfSize:14];
-    _textView.layer.masksToBounds = YES;
-    _textView.layer.borderColor = [RGBCOLOR_I(150, 150, 150) CGColor];
-    _textView.layer.borderWidth = 1;
-    _textView.layer.cornerRadius = 5;
-    _textView.delegate = self;
-    [_textView resignFirstResponder];
-    return _textView;
+    return _voiceHud;
 }
 
-#pragma mark - ******************** 监听键盘弹出的方法
-#pragma mark - 键盘相关
-/// 键盘出现
-- (void)keyBoardFramWillChange:(NSNotification *)notification {
-    NSDictionary *userInfo = [notification userInfo];
-    CGRect endFrame = [userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
-    // tableView insets
-    UIEdgeInsets insets = self.tableView.contentInset;
-    self.tableView.contentInset = UIEdgeInsetsMake(insets.top, insets.left, endFrame.size.height, insets.right);
-
-    
-    NSTimeInterval duration = [userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
-    UIViewAnimationCurve curve = [userInfo[UIKeyboardAnimationCurveUserInfoKey] integerValue];
-    [UIView animateWithDuration:duration delay:0.0f options:(curve << 16 | UIViewAnimationOptionBeginFromCurrentState) animations:^{
-        CGRect frame = self.inputMessageView.frame;
-        frame.origin = CGPointMake(0, endFrame.origin.y - frame.size.height);
-        self.inputMessageView.frame = frame;
-    } completion:nil];
-    
-    
-    [self.view addGestureRecognizer:_tap];
-    [self.view addGestureRecognizer:_pan];
-    [self.tableView setUserInteractionEnabled:NO];
+/** 录音计算时间 */
+- (NSTimer *)timer
+{
+    if (!_timer) {
+        _timer =[NSTimer scheduledTimerWithTimeInterval:0.3f target:self selector:@selector(progressChange) userInfo:nil repeats:YES];
+    }
+    return _timer;
 }
-
-/// 键盘消失
-- (void)keyBoardWillDisappear:(NSNotification *)notification {
-    
-    UIEdgeInsets insets = self.tableView.contentInset;
-    self.tableView.contentInset = UIEdgeInsetsMake(insets.top, insets.left, 0, insets.right);
-    
-    NSDictionary *userInfo = [notification userInfo];
-    NSTimeInterval duration = [userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
-    UIViewAnimationCurve curve = [userInfo[UIKeyboardAnimationCurveUserInfoKey] integerValue];
-    [UIView animateWithDuration:duration delay:0.0f options:(curve << 16 | UIViewAnimationOptionBeginFromCurrentState) animations:^{
-        CGRect frame = self.inputMessageView.frame;
-        frame.origin = CGPointMake(0,self.view.bounds.size.height - frame.size.height);
-        self.inputMessageView.frame = frame;
-    } completion:nil];
-    
-
-
-    [self.view removeGestureRecognizer:_tap];
-    [self.view removeGestureRecognizer:_pan];
-    [self.tableView setUserInteractionEnabled:YES];
-}
-
-- (void)keyboardChanged:(NSNotification *)notification {
-    // 先打印
-    // UIKeyboardFrameEndUserInfoKey ＝》将要变化的大小
-    CGRect keyboardRect = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
-//    NSLog(@"keyboardRect: %@", NSStringFromCGRect(keyboardRect));
-    // 设置约束
-    CGRect inputRect = self.inputMessageView.frame;
-    inputRect.origin.y = (kScreen_Height - keyboardRect.size.height) - inputRect.size.height;
-    self.inputMessageView.frame = inputRect;
-    
-    NSTimeInterval time = [notification.userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
-    
-    
-    [UIView animateWithDuration:time animations:^{
-        [self.view layoutIfNeeded];
-    }];
-}
-
-- (void)keyboardDidChanged {
-    
-    [self scrollToBottom:NO];
-}
-
 #pragma mark - ******************** 为了方便抽出来的方法
 // 滚动到表格的末尾，显示最新的聊天内容
 - (void)scrollToBottom:(BOOL)animation {
@@ -727,19 +531,7 @@
     return dic;
 }
 
--(void)viewDidLayoutSubviews
-{
-    if ([self.tableView respondsToSelector:@selector(setSeparatorInset:)]) {
-        [self.tableView setSeparatorInset:UIEdgeInsetsMake(0, kScreen_Width, 0, 0)];
-    }
-    
-    if ([self.tableView respondsToSelector:@selector(setLayoutMargins:)]) {
-        [self.tableView setLayoutMargins:UIEdgeInsetsMake(0, kScreen_Width, 0, 0)];
-    }
-}
-
 #pragma mark - ++++++++++++++++ 增加的方法
-
 - (void)addMothed {
     [self registerCell];
 }
@@ -826,24 +618,268 @@
 {
     /**< 获取 modelFrame */
     ICMessageFrame *modelFrame = [userInfo objectForKey:MessageKey];
-    
     /**< 根据eventName来响应对应的事件 */
     if ([eventName isEqualToString:GXRouterEventTextUrlTapEventName]) {
         NSLog(@"处理外部url点击事件...");
         
     } else if ([eventName isEqualToString:GXRouterEventImageTapEventName]) {
-        
         NSLog(@"处理图片点击事件...");
+        _smallRect             = [[userInfo objectForKey:@"smallRect"] CGRectValue];
+        _bigRect               =  [[userInfo objectForKey:@"bigRect"] CGRectValue];
+        NSLog(@"_smallRect: %@, _bigRect: %@", NSStringFromCGRect(_smallRect), NSStringFromCGRect(_bigRect));
+        
         
     } else if ([eventName isEqualToString:GXRouterEventVoiceTapEventName]) {
         
         NSLog(@"处理语音点击事件...");
+        UIImageView *imageView = (UIImageView *)userInfo[VoiceIcon];
+        UIView *redView        = (UIView *)userInfo[RedView];
+        [self chatVoiceTaped:modelFrame voiceIcon:imageView redView:redView];
 
     } else if ([eventName isEqualToString:GXRouterEventURLSkip]) {
         
         NSLog(@"处理url点击事件...");
         
     }
+}
+
+/** 下面输入框的 VC */
+- (ICChatBoxViewController *) chatBoxVC
+{
+    if (_chatBoxVC == nil) {
+        _chatBoxVC = [[ICChatBoxViewController alloc] init];
+        [_chatBoxVC.view setFrame:CGRectMake(0,APP_Frame_Height-HEIGHT_TABBAR, App_Frame_Width, APP_Frame_Height)];
+        _chatBoxVC.delegate = self;
+    }
+    return _chatBoxVC;
+}
+
+#pragma mark - ICChatBoxViewControllerDelegate
+/** chatBox页面弹起时，改变的高度 代理方法*/
+- (void) chatBoxViewController:(ICChatBoxViewController *)chatboxViewController
+        didChangeChatBoxHeight:(CGFloat)height
+{
+    self.chatBoxVC.view.top = self.view.bottom - height;
+    self.tableView.height = HEIGHT_SCREEN - height - HEIGHT_NAVBAR-HEIGHT_STATUSBAR;
+    if (height == HEIGHT_TABBAR) {
+        [self.tableView reloadData];
+        _isKeyBoardAppear  = NO;
+        [self scrollToBottom];
+    } else {
+        [self scrollToBottom];
+        _isKeyBoardAppear  = YES;
+    }
+    if (self.textView == nil) {
+        self.textView = chatboxViewController.chatBox.textView;
+    }
+}
+
+/** 录制视频, 弹出videoView 代理方法 */
+- (void)chatBoxViewController:(ICChatBoxViewController *)chatboxViewController didVideoViewAppeared:(ICVideoView *)videoView
+{
+    [_chatBoxVC.view setFrame:CGRectMake(0, HEIGHT_SCREEN-HEIGHT_TABBAR, App_Frame_Width, APP_Frame_Height)];
+    videoView.hidden = NO;
+    [UIView animateWithDuration:0.5 animations:^{
+        self.tableView.height = HEIGHT_SCREEN - videwViewH - HEIGHT_NAVBAR-HEIGHT_STATUSBAR;
+        self.chatBoxVC.view.frame = CGRectMake(0, videwViewX+HEIGHT_NAVBAR+HEIGHT_STATUSBAR, App_Frame_Width, videwViewH);
+        [self scrollToBottom];
+    } completion:^(BOOL finished) { // 状态改变
+        self.chatBoxVC.chatBox.status = ICChatBoxStatusShowVideo;
+        // 在这里创建视频设配
+        UIView *videoLayerView = [videoView viewWithTag:1000];
+        UIView *placeholderView = [videoView viewWithTag:1001];
+        [[ICVideoManager shareManager] setVideoPreviewLayer:videoLayerView];
+        [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(videoPreviewLayerWillAppear:) userInfo:placeholderView repeats:NO];
+        
+    }];
+}
+
+/**
+ 发送图片消息 代理方法
+ 
+ @param chatboxViewController <#chatboxViewController description#>
+ @param image 压缩后到图片
+ @param imgPath 压缩后图片存储到路径
+ */
+- (void) chatBoxViewController:(ICChatBoxViewController *)chatboxViewController
+              sendImageMessage:(UIImage *)image
+                     imagePath:(NSString *)imgPath
+{
+    if (image && imgPath) {
+        [self sendImageMessage:image localMediaPath:imgPath];
+    }
+}
+
+
+/** 发送语音消息 代理方法 */
+- (void) chatBoxViewController:(ICChatBoxViewController *)chatboxViewController sendVoiceMessage:(NSString *)voicePath
+{
+    [self timerInvalue]; // 销毁定时器
+    self.voiceHud.hidden = YES;
+    if (voicePath) {
+        [self sendVoiceMessageWithlocalMediaPath:voicePath];
+    }
+}
+
+/** 发送视频消息 代理方法 */
+- (void)chatBoxViewController:(ICChatBoxViewController *)chatboxViewController sendVideoMessage:(NSString *)videoPath
+{
+    /**< 需要创建本地发送视频消息 */
+}
+
+/** 发送文件消息 代理方法 */
+- (void) chatBoxViewController:(ICChatBoxViewController *)chatboxViewController sendFileMessage:(NSString *)fileName
+{
+    /**< 需要创建本地发送文件消息 */
+}
+
+/** 发送文本消息 代理方法 */
+- (void) chatBoxViewController:(ICChatBoxViewController *)chatboxViewController
+               sendTextMessage:(NSString *)messageStr
+{
+    if (messageStr && messageStr.length > 0) {
+        [self sendTextMessage:messageStr];
+    }
+}
+
+#pragma mark - private
+- (void) scrollToBottom
+{
+    if (self.dataSource.count > 0) {
+        [self.tableView scrollToRowAtIndexPath:[NSIndexPath indexPathForRow:self.dataSource.count-1 inSection:0] atScrollPosition:UITableViewScrollPositionBottom animated:NO];
+    }
+}
+
+/**< chatBoxVC 注销活动状态 */
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    [self.chatBoxVC resignFirstResponder];
+}
+
+- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView
+{
+    [self.chatBoxVC resignFirstResponder];
+}
+
+- (void)timerInvalue
+{
+    [_timer invalidate];
+    _timer  = nil;
+}
+
+#pragma mark - voice & video
+
+- (void)voiceDidCancelRecording
+{
+    [self timerInvalue];
+    self.voiceHud.hidden = YES;
+}
+- (void)voiceDidStartRecording
+{
+    [self timerInvalue];
+    self.voiceHud.hidden = NO;
+    [self timer];
+}
+
+// 向外或向里移动
+- (void)voiceWillDragout:(BOOL)inside
+{
+    if (inside) {
+        [_timer setFireDate:[NSDate distantPast]];
+        _voiceHud.image  = [UIImage imageNamed:@"voice_1"];
+    } else {
+        [_timer setFireDate:[NSDate distantFuture]];
+        self.voiceHud.animationImages  = nil;
+        self.voiceHud.image = [UIImage imageNamed:@"cancelVoice"];
+    }
+}
+/** 录音进度改变  progress*/
+- (void)progressChange
+{
+    AVAudioRecorder *recorder = [[ICRecordManager shareManager] recorder] ;
+    [recorder updateMeters];
+    float power= [recorder averagePowerForChannel:0];//取得第一个通道的音频，注意音频强度范围时-160到0,声音越大power绝对值越小
+    CGFloat progress = (1.0/160)*(power + 160);
+    self.voiceHud.progress = progress;
+}
+
+- (void)voiceRecordSoShort
+{
+    [self timerInvalue];
+    self.voiceHud.animationImages = nil;
+    self.voiceHud.image = [UIImage imageNamed:@"voiceShort"];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        self.voiceHud.hidden = YES;
+    });
+}
+
+// play voice
+- (void)chatVoiceTaped:(ICMessageFrame *)messageFrame
+             voiceIcon:(UIImageView *)voiceIcon
+               redView:(UIView *)redView
+{
+    ICRecordManager *recordManager = [ICRecordManager shareManager];
+    recordManager.playDelegate = self;
+    
+    NSLog(@"mediaPath: %@", messageFrame.model.mediaPath);
+    NSLog(@"localMediaPath: %@", messageFrame.model.localMediaPath);
+    
+    // 文件路径
+    NSString *voicePath;
+    if (messageFrame.model.localMediaPath) {
+        voicePath = [self mediaPath:messageFrame.model.localMediaPath];
+    } else {
+        voicePath = [self mediaPath:messageFrame.model.mediaPath];
+    }
+
+    NSLog(@"voicePath: %@", voicePath);
+    
+    NSString *amrPath   = [[voicePath stringByDeletingPathExtension] stringByAppendingPathExtension:@"amr"];
+    NSLog(@"amrPath: %@", amrPath);
+    
+    if (self.voicePath) { /**< 如果正在播放 */
+        if ([self.voicePath isEqualToString:voicePath]) { // the same recoder
+            /**< 是相同的就停止 */
+            self.voicePath = nil;
+            [[ICRecordManager shareManager] stopPlayRecorder:voicePath];
+            [voiceIcon stopAnimating];
+            self.currentVoiceIcon = nil;
+            return;
+        } else {
+            /**< 否则点击其他的播放，当前的停止动画 */
+            [self.currentVoiceIcon stopAnimating];
+            self.currentVoiceIcon = nil;
+        }
+    }
+    /**< 没有播放的，就创建新的播放 */
+    [[ICRecordManager shareManager] startPlayRecorder:voicePath];
+    [voiceIcon startAnimating];
+    self.voicePath = voicePath;
+    self.currentVoiceIcon = voiceIcon;
+}
+// 移除录视频时的占位图片
+- (void)videoPreviewLayerWillAppear:(NSTimer *)timer
+{
+    UIView *placeholderView = (UIView *)[timer userInfo];
+    [placeholderView removeFromSuperview];
+}
+
+// 文件路径
+- (NSString *)mediaPath:(NSString *)originPath
+{
+    // 这里文件路径重新给，根据文件名字来拼接
+    NSString *name = [[originPath lastPathComponent] stringByDeletingPathExtension];
+    return [[ICRecordManager shareManager] receiveVoicePathWithFileKey:name];
+}
+
+#pragma mark - ICRecordManagerDelegate
+- (void)voiceDidPlayFinished
+{
+    self.voicePath = nil;
+    ICRecordManager *manager = [ICRecordManager shareManager];
+    manager.playDelegate = nil;
+    [self.currentVoiceIcon stopAnimating];
+    self.currentVoiceIcon = nil;
 }
 
 - (void)didReceiveMemoryWarning {

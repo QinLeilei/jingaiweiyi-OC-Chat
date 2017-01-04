@@ -66,7 +66,7 @@
     } else if ([type isEqualToString:TypePic]) {
         messageHasPrefix = ICMessageImageHasPrefix;
     } else if ([type isEqualToString:TypeVoice]) {
-        messageHasPrefix = ICMessageAudioHasPrefix;
+        messageHasPrefix = ICMessageVoiceHasPrefix;
     } else if ([type isEqualToString:TypeVideo]) {
         messageHasPrefix = ICMessageVideoHasPrefix;
     } else if ([type isEqualToString:TypeFile]) {
@@ -75,6 +75,8 @@
         messageHasPrefix = ICMessageSyetemHasPrefix;
     }
     message.content = [content substringFromIndex:messageHasPrefix.length + 33];
+    NSLog(@"message.content: %@", message.content);
+    
     message.localMsgId = [content substringWithRange:NSMakeRange(messageHasPrefix.length, 32)];
     /**< 发送中 */
     message.deliveryState = ICMessageDeliveryState_Delivering;
@@ -88,6 +90,7 @@
         model.mediaPath = message.content;
         model.localMediaPath = localMediaPath;
     }
+    NSLog(@"model.mediaPath: %@", model.mediaPath);
     
     ICMessageFrame *modelF = [[ICMessageFrame alloc] init];
     modelF.model = model;
@@ -106,182 +109,21 @@
                                                       from:(NSString *)from
                                                          to:(NSString *)to localMediaPath:(NSString *)localMediaPath
 {
-    return [self createLocalMessageFrameWithType:TypePic content:content from:from to:to localMediaPath:localMediaPath];;
+    return [self createLocalMessageFrameWithType:TypePic content:content from:from to:to localMediaPath:localMediaPath];
 }
 
-// 创建一条本地消息
-+ (ICMessageFrame *)createMessageFrame:(NSString *)type
-                               content:(NSString *)content
-                                  path:(NSString *)path
-                                  from:(NSString *)from
-                                    to:(NSString *)to
-                               fileKey:(NSString *)fileKey
-                              isSender:(BOOL)isSender
-              receivedSenderByYourself:(BOOL)receivedSenderByYourself
-{
-    ICMessage *message    = [[ICMessage alloc] init];
-    message.to            = to;
-    message.from          = from;
-    message.fileKey       = fileKey;
-    // 我默认了一个本机的当前时间，其实没用到，成功后都改成服务器时间了
-    message.date          = [ICMessageHelper currentMessageTime];
-    ICMessageModel *model = [[ICMessageModel alloc] init];
-    type = [self cellTypeWithMessageType:type];
-    message.type          = type;
-    if ([type isEqualToString:TypeText]) {
-        message.content = content;
-    } else if ([type isEqualToString:TypePic]) {
-        message.content = @"[图片]";
-    } else if ([type isEqualToString:TypeVoice]) {
-        message.content = @"[语音]";
-    } else if ([type isEqualToString:TypeVideo]) {
-        message.content = @"[视频]";
-    } else if ([type isEqualToString:TypeFile]) {
-        message.content = @"[文件]";
-    } else if ([type isEqualToString:TypeSystem]) {
-        message.content = content;
-    } else {
-        message.content = content;
-    }
-    model.isSender        = isSender;
-    model.mediaPath       = path;
-    if (isSender) {
-        message.deliveryState = ICMessageDeliveryState_Delivering;
-    } else {
-        message.deliveryState = ICMessageDeliveryState_Delivered;
-    }
-    if (receivedSenderByYourself) { // 接收到得信息是自己发的
-        message.deliveryState = ICMessageDeliveryState_Delivered;
-        model.isSender        = YES;
-    }
-    model.message = message;
-    ICMessageFrame *modelF = [[ICMessageFrame alloc] init];
-    modelF.model = model;
-    return modelF;
++ (ICMessageFrame *)createLocalVoiceMessageFrameWithContent:(NSString *)content
+                                                       from:(NSString *)from
+                                                         to:(NSString *)to localMediaPath:(NSString *)localMediaPath {
+    return [self createLocalMessageFrameWithType:TypeVoice content:content from:from to:to localMediaPath:localMediaPath];
 }
-
-
-+ (ICMessageFrame *)createMessageMeReceiverFrame:(NSString *)type
-                               content:(NSString *)content
-                                  path:(NSString *)path
-                                  from:(NSString *)from
-                               fileKey:(NSString *)fileKey
-{
-    ICMessage *message = [[ICMessage alloc] init];
-    message.type       = type;
-    ICMessageModel *model = [[ICMessageModel alloc] init];
-    message.fileKey    = fileKey;
-    model.isSender = NO;
-    message.content    = content;
-    model.mediaPath    = path;
-    message.deliveryState = ICMessageDeliveryState_Delivered;
-    model.message = message;
-    ICMessageFrame *modelF = [[ICMessageFrame alloc] init];
-    modelF.model = model;
-    return modelF;
-}
-
-+ (ICMessageFrame *)createTimeMessageFrame:(NSString *)type
-                               content:(NSString *)content
-                                  path:(NSString *)path
-                                  from:(NSString *)from
-                                    to:(NSString *)to
-                               fileKey:(NSString *)fileKey
-                              isSender:(BOOL)isSender
-              receivedSenderByYourself:(BOOL)receivedSenderByYourself
-{
-    ICMessage *message    = [[ICMessage alloc] init];
-    message.to            = to;
-    message.from          = from;
-    message.fileKey       = fileKey;
-    // 我默认了一个本机的当前时间，其实没用到，成功后都改成服务器时间了
-    message.date          = [ICMessageHelper currentMessageTime];
-    ICMessageModel *model = [[ICMessageModel alloc] init];
-    type = [self cellTypeWithMessageType:type];
-    message.type          = type;
-    if ([type isEqualToString:TypeText]) {
-        message.content = content;
-    } else if ([type isEqualToString:TypePic]) {
-        message.content = @"[图片]";
-    } else if ([type isEqualToString:TypeVoice]) {
-        message.content = @"[语音]";
-    } else if ([type isEqualToString:TypeVideo]) {
-        message.content = @"[视频]";
-    } else if ([type isEqualToString:TypeFile]) {
-        message.content = @"[文件]";
-    } else if ([type isEqualToString:TypeSystem]) {
-        message.content = content;
-    }
-    model.isSender        = isSender;
-    model.mediaPath       = path;
-    if (isSender) {
-        message.deliveryState = ICMessageDeliveryState_Delivering;
-    } else {
-        message.deliveryState = ICMessageDeliveryState_Delivered;
-    }
-    if (receivedSenderByYourself) { // 接收到得信息是自己发的
-        message.deliveryState = ICMessageDeliveryState_Delivered;
-        model.isSender        = YES;
-    }
-    model.message = message;
-    ICMessageFrame *modelF = [[ICMessageFrame alloc] init];
-    modelF.model = model;
-    return modelF;
-}
-
-
-/**
- *  创建一条发送消息
- *
- *  @param type    消息类型
- *  @param content 消息文本内容，其它类型的类型名称:[图片]
- *  @param fileKey 音频文件的fileKey
- *  @param from    发送者
- *  @param to      接收者
- *  @param lnk     连接地址URL,图片格式,文件名称 （目前没用到）
- *  @param status  消息状态 （目前没用到）
- *
- *  @return 发送的消息
- */
-+ (ICMessage *)createSendMessage:(NSString *)type
-                         content:(NSString *)content
-                         fileKey:(NSString *)fileKey
-                            from:(NSString *)from
-                              to:(NSString *)to
-                             lnk:(NSString *)lnk
-                          status:(NSString *)status
-{
-    ICMessage *message    = [[ICMessage alloc] init];
-    message.from          = from;
-    message.to            = to;
-    message.content       = content;
-    message.fileKey       = fileKey;
-    message.lnk           = lnk;
-    if ([type isEqualToString:TypeText]) {
-        message.type      = @"1";
-    } else if ([type isEqualToString:TypePic]) {
-        message.type      = @"3";
-    } else if ([type isEqualToString:TypeVoice]) {
-        message.type      = @"2";
-    } else if ([type isEqualToString:TypeVideo]) {
-        message.type      = @"4";
-    } else if ([type isEqualToString:TypeFile]) {
-        message.type      = @"5";
-    }else if ([type isEqualToString:TypePicText]) {
-        message.type      = @"7";
-    }
-//    message.localMsgId    = [self localMessageId:content];
-    message.date          = [ICMessageHelper currentMessageTime];
-    return message;
-}
-
 
 // 获取语音消息时长
 + (CGFloat)getVoiceTimeLengthWithPath:(NSString *)path
 {
     AVURLAsset* audioAsset =[AVURLAsset URLAssetWithURL:[NSURL fileURLWithPath:path] options:nil];
     CMTime audioDuration = audioAsset.duration;
-    CGFloat audioDurationSeconds =CMTimeGetSeconds(audioDuration);
+    CGFloat audioDurationSeconds = CMTimeGetSeconds(audioDuration);
     return audioDurationSeconds;
 }
 

@@ -14,10 +14,11 @@
 
 extern NSString * const ICMessageTextHasPrefix;
 extern NSString * const ICMessageImageHasPrefix;
-extern NSString * const ICMessageAudioHasPrefix;
+extern NSString * const ICMessageVoiceHasPrefix;
 extern NSString * const ICMessageVideoHasPrefix;
 extern NSString * const ICMessageFilesHasPrefix;
-extern NSString * const ICMessageSyetemHasPrefix;;
+extern NSString * const ICMessageSyetemHasPrefix;
+/**< 附加的 */
 
 @interface ICMessage : NSObject
 

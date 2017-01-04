@@ -10,7 +10,7 @@
 #define ICChatHearder_h
 
 
-//#import "ICChatBoxViewController.h"
+#import "ICChatBoxViewController.h"
 #import "ICChatConst.h"
 #import "UIImage+Extension.h"
 #import "NSString+Extension.h"

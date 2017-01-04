@@ -9,14 +9,14 @@
 #import "ICChatMessageVoiceCell.h"
 #import "ICMessageModel.h"
 #import "ICRecordManager.h"
-
-
+#import "TFHttpTools.h"
+#import "NSData+MD5Digest.h"
 @interface ICChatMessageVoiceCell ()
 
-@property (nonatomic, strong) UIButton    *voiceButton;
-@property (nonatomic, strong) UILabel     *durationLabel;
-@property (nonatomic, strong) UIImageView *voiceIcon;
-@property (nonatomic, strong) UIView      *redView;
+@property (nonatomic, strong) UIButton    *voiceButton; /**< 按钮 */
+@property (nonatomic, strong) UILabel     *durationLabel; /**< 时长 */
+@property (nonatomic, strong) UIImageView *voiceIcon; /**< 喇叭图标 */
+@property (nonatomic, strong) UIView      *redView; /**< <#annotation#> */
 
 @end
 
@@ -40,32 +40,68 @@
 {
     [super setModelFrame:modelFrame];
     
-    NSString *voicePath = [self mediaPath:modelFrame.model.mediaPath];
-    self.durationLabel.text  = [NSString stringWithFormat:@"%ld''",[[ICRecordManager shareManager] durationWithVideo:[NSURL fileURLWithPath:voicePath]]];
+    
+    
+    NSString *localVoicePath = modelFrame.model.localMediaPath;
+    
+    if ([[ICRecordManager shareManager] voiceFileExistsAtLocalPath:localVoicePath]) { // 本地存在
+        self.durationLabel.text  = [NSString stringWithFormat:@"%zd''",[[ICRecordManager shareManager] durationWithVideo:[NSURL fileURLWithPath:localVoicePath]]];
+        [self setupUIWithModelFrame:modelFrame];
+    } else {
+        NSString *httpVoicePath = modelFrame.model.mediaPath;
+        // 保存的到本地的位置
+        NSString *saveLocalPath = [self mediaPath:httpVoicePath];
+        
+        if ([[ICRecordManager shareManager] voiceFileExistsAtLocalPath:saveLocalPath]) {
+            self.durationLabel.text  = [NSString stringWithFormat:@"%zd''",[[ICRecordManager shareManager] durationWithVideo:[NSURL fileURLWithPath:saveLocalPath]]];
+            [self setupUIWithModelFrame:modelFrame];
+        } else {
+            // 下载存到本地
+            TFHttpTools *tools = [[TFHttpTools alloc] init];
+            [tools downloadFileWithURL:httpVoicePath parameters:nil savedPath:saveLocalPath downloadSuccess:^(NSURLResponse *response, NSURL *filePath) {
+                
+                if (self.mediaRefreshBlock) {
+                    self.mediaRefreshBlock(self.currIndexPath);
+                }
+                
+            } downloadFailure:^(NSError *error) {
+                
+            } downloadProgress:^(NSProgress *downloadProgress) {
+                NSLog(@"下载进度: %lf",1.0 * downloadProgress.completedUnitCount / downloadProgress.totalUnitCount);
+            }];
+        }
+        
+    }
+    
+}
+
+- (void)setupUIWithModelFrame:(ICMessageFrame *)modelFrame {
+    
     if (modelFrame.model.isSender) {  // sender
         self.voiceIcon.image = [UIImage imageNamed:@"right-3"];
         UIImage *image1 = [UIImage imageNamed:@"right-1"];
         UIImage *image2 = [UIImage imageNamed:@"right-2"];
         UIImage *image3 = [UIImage imageNamed:@"right-3"];
         self.voiceIcon.animationImages = @[image1, image2, image3];
+        self.durationLabel.textAlignment = NSTextAlignmentLeft;
     } else {                          // receive
         self.voiceIcon.image = [UIImage imageNamed:@"left-3"];
         UIImage *image1 = [UIImage imageNamed:@"left-1"];
         UIImage *image2 = [UIImage imageNamed:@"left-2"];
         UIImage *image3 = [UIImage imageNamed:@"left-3"];
         self.voiceIcon.animationImages = @[image1, image2, image3];
+        self.durationLabel.textAlignment = NSTextAlignmentRight;
     }
     self.voiceIcon.animationDuration = 0.8;
     if (modelFrame.model.message.status == ICMessageStatus_read) {
         self.redView.hidden  = YES;
     } else if (modelFrame.model.message.status == ICMessageStatus_unRead) {
-        self.redView.hidden  = NO;
+        self.redView.hidden  = YES;
     }
     self.durationLabel.frame = modelFrame.durationLabelF;
     self.voiceIcon.frame     = modelFrame.voiceIconF;
     self.voiceButton.frame   = modelFrame.bubbleViewF;
     self.redView.frame       = modelFrame.redViewF;
-        
 }
 
 // 文件路径

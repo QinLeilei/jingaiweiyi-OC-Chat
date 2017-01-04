@@ -166,7 +166,7 @@
 }
 
 
-#pragma mark -传一个文件名，返回一个在沙盒Document下的文件路径
+#pragma mark - 传一个文件名，返回一个在沙盒Document下的文件路径
 -(NSString *)fileSavePath:(NSString *)fileName{
     NSString *document = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
     //图片保存在沙盒的Doucument下
@@ -232,6 +232,88 @@
             failure(task, error);
         }
     }];
+}
+
+//AFNetworking 2.X
+//- (void)downloadFileWithOption:(NSDictionary *)parameters
+//                 withInferface:(NSString*)requestURL
+//                     savedPath:(NSString*)savedPath
+//               downloadSuccess:(void (^)(AFHTTPRequestOperation *operation, id responseObject))success
+//               downloadFailure:(void (^)(AFHTTPRequestOperation *operation, NSError *error))failure
+//                      progress:(void (^)(float progress))progress
+//
+//{
+//    
+//    //沙盒路径    //NSString *savedPath = [NSHomeDirectory() stringByAppendingString:@"/Documents/xxx.zip"];
+//    AFHTTPRequestSerializer *serializer = [AFHTTPRequestSerializer serializer];
+//    NSMutableURLRequest *request =[serializer requestWithMethod:@"POST" URLString:requestURL parameters:parameters error:nil];
+//    
+//    //以下是手动创建request方法 AFQueryStringFromParametersWithEncoding有时候会保存
+//    //    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:requestURL]];
+//    //   NSMutableURLRequest *request =[[[AFHTTPRequestOperationManager manager]requestSerializer]requestWithMethod:@"POST" URLString:requestURL parameters:paramaterDic error:nil];
+//    //
+//    //    NSString *charset = (__bridge NSString *)CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding));
+//    //
+//    //    [request setValue:[NSString stringWithFormat:@"application/x-www-form-urlencoded; charset=%@", charset] forHTTPHeaderField:@"Content-Type"];
+//    //    [request setHTTPMethod:@"POST"];
+//    //
+//    //    [request setHTTPBody:[AFQueryStringFromParametersWithEncoding(paramaterDic, NSASCIIStringEncoding) dataUsingEncoding:NSUTF8StringEncoding]];
+//    
+//    AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc]initWithRequest:request];
+//    [operation setOutputStream:[NSOutputStream outputStreamToFileAtPath:savedPath append:NO]];
+//    [operation setDownloadProgressBlock:^(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead) {
+//        float p = (float)totalBytesRead / totalBytesExpectedToRead;
+//        progress(p);
+//        NSLog(@"download：%f", (float)totalBytesRead / totalBytesExpectedToRead);
+//        
+//    }];
+//    
+//    [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+//        success(operation,responseObject);
+//        NSLog(@"下载成功");
+//        
+//    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+//        success(operation,error);
+//        
+//        NSLog(@"下载失败");
+//        
+//    }];
+//    
+//    [operation start];
+//    
+//}
+
+//AFNetworking 3.X
+- (void)downloadFileWithURL:(NSString*)requestURLString
+                 parameters:(NSDictionary *)parameters
+                  savedPath:(NSString*)savedPath
+            downloadSuccess:(void (^)(NSURLResponse *response, NSURL *filePath))success
+            downloadFailure:(void (^)(NSError *error))failure
+           downloadProgress:(void (^)(NSProgress *downloadProgress))progress
+
+{
+    
+    AFHTTPRequestSerializer *serializer = [AFHTTPRequestSerializer serializer];
+    NSMutableURLRequest *request =[serializer requestWithMethod:@"GET" URLString:requestURLString parameters:parameters error:nil];
+    NSURLSessionDownloadTask *task = [[AFHTTPSessionManager manager] downloadTaskWithRequest:request progress:^(NSProgress * _Nonnull downloadProgress) {
+        if (progress) {
+            progress(downloadProgress);
+        }
+    } destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
+        return [NSURL fileURLWithPath:savedPath];
+    } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
+        if(error){
+            if (failure) {
+                failure(error);
+            }
+        } else{
+            if (success) {
+                success(response,filePath);
+            }
+        }
+    }];
+    [task resume];
+    
 }
 
 @end

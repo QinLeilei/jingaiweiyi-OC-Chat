@@ -31,6 +31,10 @@
 
 @property (nonatomic, strong) NSString * streamBareJidStr;
 
+
+#pragma mark - add property
+@property (nonatomic, strong) NSString * localMediaPath;
+
 /**
  * This method is called immediately before the object is inserted into the managedObjectContext.
  * At this point, all normal properties have been set.

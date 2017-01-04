@@ -14,7 +14,7 @@
 #import "ICMessageConst.h"
 #import "ICMessageHelper.h"
 #import "ICVideoManager.h"
-
+#import "NSData+MD5Digest.h"
 #define APP_WIDTH ([UIScreen mainScreen].bounds.size.width)
 #define APP_HEIGHT ([UIScreen mainScreen].bounds.size.height)
 
@@ -76,23 +76,8 @@
             _topViewF             = CGRectMake(CGRectGetMinX(_headImageViewF) - headToBubble - topViewSize.width-headToBubble-5, cellMargin,topViewSize.width,topViewSize.height);
             _chatLabelF           = CGRectMake(x, topViewH + cellMargin + bubblePadding, chateLabelSize.width, chateLabelSize.height);
         } else if ([model.message.type isEqualToString:TypePic]) { // 图片
-            CGSize imagesize = CGSizeZero;
-            ICMediaManager *manager = [ICMediaManager sharedManager];
-            UIImage *localImage = [manager imageWithLocalPath:model.localMediaPath];
-            NSLog(@"localImage: %@", localImage);
             
-            if (localImage) {
-                
-                if (![[ImageSizeManager shareManager] hasSrc:model.localMediaPath]) {
-                    [[ImageSizeManager shareManager] saveImage:model.localMediaPath size:localImage.size];
-                }
-                
-                imagesize = [[ImageSizeManager shareManager] sizeWithSrc:model.localMediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
-            } else {
-                imagesize = [[ImageSizeManager shareManager] sizeWithSrc:model.mediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
-            }
-            
-            NSLog(@"imagesize: %@", NSStringFromCGSize(imagesize));
+            CGSize imagesize = [self imageSizeWithModel:model];
             
             imagesize.width        = imagesize.width > timeSize.width ? imagesize.width : timeSize.width;
             CGSize topViewSize     = CGSizeMake(imagesize.width-arrowWidth, topViewH);
@@ -103,11 +88,23 @@
             _topViewF             = CGRectMake(x, cellMargin,topViewSize.width,topViewSize.height);
             _picViewF              = CGRectMake(x, cellMargin+topViewH, imagesize.width, imagesize.height);
         } else if ([model.message.type isEqualToString:TypeVoice]) { // 语音消息
-            CGFloat bubbleViewW     = 100;
-            _bubbleViewF = CGRectMake(CGRectGetMinX(_headImageViewF) - headToBubble - bubbleViewW, cellMargin+topViewH, bubbleViewW, 40);
-            _topViewF               = CGRectMake(CGRectGetMinX(_bubbleViewF), cellMargin, bubbleViewW - arrowWidth, topViewH);
-            _durationLabelF         = CGRectMake(CGRectGetMinX(_bubbleViewF)+ bubblePadding , cellMargin + 10+topViewH, 50, 20);
-            _voiceIconF = CGRectMake(CGRectGetMaxX(_bubbleViewF) - 22, cellMargin + 10 + topViewH, 11, 16.5);// - 20
+            
+            CGFloat bubbleView_MinW     = cellMinW + 20;
+            CGFloat bubbleView_MaxW = (kScreen_Width - (CGRectGetWidth(_headImageViewF) + headToBubble)); // 最大宽度
+            
+            CGFloat durationW = [self durationWidthWithMaxWidth:bubbleView_MaxW model:model];;
+            
+            CGFloat voiceToBull = 10; // 时长和气泡间隔
+            CGFloat bubbleViewW =  (bubblePadding + durationW) + (voiceToBull + 16.5);
+            
+            bubbleViewW = MAX(bubbleView_MinW, bubbleViewW);
+            bubbleViewW = MIN(bubbleViewW, bubbleView_MaxW);
+            
+            _bubbleViewF = CGRectMake(CGRectGetMinX(_headImageViewF) - headToBubble - bubbleViewW, cellMargin+topViewH, bubbleViewW, 40); /**< 气泡位置 */
+            
+            _topViewF               = CGRectMake(CGRectGetMinX(_bubbleViewF), cellMargin, bubbleViewW - arrowWidth, topViewH); /**<  topView位置*/
+            _durationLabelF         = CGRectMake(CGRectGetMinX(_bubbleViewF)+ bubblePadding , cellMargin + 10 + topViewH, durationW, 20); /**< 时长位置 */
+            _voiceIconF = CGRectMake(CGRectGetMaxX(_bubbleViewF) - voiceToBull - 16.5, cellMargin + 10 + topViewH, 11, 16.5);// - 20
         }  else if ([model.message.type isEqualToString:TypeVideo]) { // 视频信息
             CGSize imageSize       = CGSizeMake(150, 150);
             UIImage *videoImage = [[ICMediaManager sharedManager] videoImageWithFileName:model.mediaPath.lastPathComponent];
@@ -160,21 +157,7 @@
             _topViewF     = CGRectMake(CGRectGetMinX(_bubbleViewF)+arrowWidth, cellMargin, topViewSize.width, topViewSize.height);
             _chatLabelF   = CGRectMake(x, cellMargin + bubblePadding + topViewH, chateLabelSize.width, chateLabelSize.height);
         } else if ([model.message.type isEqualToString:TypePic]) {
-
-            CGSize imagesize = CGSizeZero;
-            ICMediaManager *manager = [ICMediaManager sharedManager];
-            UIImage *localImage = [manager imageWithLocalPath:model.localMediaPath];
-            if (localImage) {
-                
-                if (![[ImageSizeManager shareManager] hasSrc:model.localMediaPath]) {
-                    [[ImageSizeManager shareManager] saveImage:model.localMediaPath size:localImage.size];
-                }
-                imagesize = [[ImageSizeManager shareManager] sizeWithSrc:model.localMediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
-            } else {
-                imagesize = [[ImageSizeManager shareManager] sizeWithSrc:model.mediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
-            }
-            
-            NSLog(@"imagesize: %@", NSStringFromCGSize(imagesize));
+            CGSize imagesize = [self imageSizeWithModel:model];
             
             imagesize.width        = imagesize.width > cellMinW ? imagesize.width : cellMinW;
             CGSize topViewSize     = CGSizeMake(imagesize.width-arrowWidth, topViewH);
@@ -186,17 +169,27 @@
             _picViewF              = CGRectMake(x, cellMargin+topViewH, imagesize.width, imagesize.height);
             
         } else if ([model.message.type isEqualToString:TypeVoice]) {   // 语音
-            CGFloat bubbleViewW = cellMinW + 20; // 加上一个红点的宽度
-            CGFloat voiceToBull = 4;
+            
+            CGFloat bubbleView_MinW     = cellMinW + 20;
+            CGFloat bubbleView_MaxW = (kScreen_Width - (CGRectGetWidth(_headImageViewF) + headToBubble)); // 最大宽度
+            
+            CGFloat durationW = [self durationWidthWithMaxWidth:bubbleView_MaxW model:model];
+            
+            CGFloat voiceToBull = 10; //
+            CGFloat bubbleViewW =  (voiceToBull + arrowWidth + 16.5) + (durationW + bubblePadding);
+            
+            bubbleViewW = MAX(bubbleView_MinW, bubbleViewW);
+            bubbleViewW = MIN(bubbleViewW, bubbleView_MaxW);
             
             _bubbleViewF = CGRectMake(CGRectGetMaxX(_headImageViewF) + headToBubble, cellMargin+topViewH, bubbleViewW, 40);
-            _topViewF    = CGRectMake(CGRectGetMinX(_bubbleViewF)+arrowWidth, cellMargin, bubbleViewW-arrowWidth, topViewH);
-            _voiceIconF = CGRectMake(CGRectGetMinX(_bubbleViewF)+arrowWidth+bubblePadding, cellMargin + 10 + topViewH, 11, 16.5);
-            // 假设
-            NSString *duraStr = @"100";
-            CGSize durSize = [duraStr sizeWithMaxWidth:chatLabelMax andFont:[UIFont systemFontOfSize:14]];
-            _durationLabelF = CGRectMake(CGRectGetMaxX(_bubbleViewF) - voiceToBull - durSize.width, cellMargin + 10 + topViewH, durSize.width, durSize.height);
-            _redViewF = CGRectMake(CGRectGetMaxX(_bubbleViewF) + 6, CGRectGetMinY(_bubbleViewF) + _bubbleViewF.size.height*0.5-4, 8, 8);
+            
+            _topViewF    = CGRectMake(CGRectGetMinX(_bubbleViewF) + arrowWidth, cellMargin, bubbleViewW-arrowWidth, topViewH);
+            
+            _voiceIconF = CGRectMake(CGRectGetMinX(_bubbleViewF) + arrowWidth + voiceToBull, cellMargin + 10 + topViewH, 11, 16.5); /**< 喇叭图标位置 */
+            
+            _durationLabelF = CGRectMake(CGRectGetMaxX(_bubbleViewF) - bubblePadding - durationW, cellMargin + 10 + topViewH, durationW, 20); /**< 时长位置 */
+            
+            _redViewF = CGRectMake(CGRectGetMaxX(_bubbleViewF) + 6, CGRectGetMinY(_bubbleViewF) + _bubbleViewF.size.height*0.5-4, 8, 8); /**< 红点位置  */
         } else if ([model.message.type isEqualToString:TypeVideo]) {   // 视频
             CGSize imageSize       = CGSizeMake(150, 150);
             UIImage *videoImage = [[ICMediaManager sharedManager] videoImageWithFileName:[NSString stringWithFormat:@"%@.png",model.message.fileKey]];
@@ -241,6 +234,53 @@
     }
 }
 
+- (CGFloat)durationWidthWithMaxWidth:(CGFloat)maxWidth model:(ICMessageModel *)model {
+    CGFloat durationW = 0;
+    NSString *localVoicePath = model.localMediaPath;
+    NSUInteger duration = 0; //时长
+    if ([[ICRecordManager shareManager] voiceFileExistsAtLocalPath:localVoicePath]) { // 本地存在
+        duration = [[ICRecordManager shareManager] durationWithVideo:[NSURL fileURLWithPath:localVoicePath]];
+    } else {
+        NSString *httpVoicePath = model.mediaPath;
+        // 保存的到本地的位置
+        NSString *saveLocalPath = [[ICRecordManager shareManager] receiveVoicePathWithFileKey:[NSString stringWithFormat:@"%@", [NSData MD5HexDigest:[httpVoicePath dataUsingEncoding:NSUTF8StringEncoding]]]];
+        if ([[ICRecordManager shareManager] voiceFileExistsAtLocalPath:saveLocalPath]) {
+            duration = [[ICRecordManager shareManager] durationWithVideo:[NSURL fileURLWithPath:saveLocalPath]];
+        }
+    }
+    NSString *durationString = [NSString stringWithFormat:@"%zd''",duration];
+    NSArray *durationSpaces= @[@"  ", // 0-9
+                               @"   ",// 10-19
+                               @"    ", // 20-29
+                               @"     ",
+                               @"      ",
+                               @"       ",
+                               @"        ",
+                               @"         "];
+    NSInteger index = duration / 10 >= durationSpaces.count? durationSpaces.count-1: duration / 10;
+    NSString *space = durationSpaces[index];
+    NSString *totalString = [NSString stringWithFormat:@"%@%@", durationString, space];
+    durationW = [totalString sizeWithMaxWidth:maxWidth andFont:[UIFont systemFontOfSize:14]].width;
+    return durationW;
+}
 
+- (CGSize)imageSizeWithModel:(ICMessageModel *)model {
+    CGSize imagesize = CGSizeZero;
+    ICMediaManager *manager = [ICMediaManager sharedManager];
+    UIImage *localImage = [manager imageWithLocalPath:model.localMediaPath];
+    if (localImage) {
+        
+        if (![[ImageSizeManager shareManager] hasSrc:model.localMediaPath]) {
+            [[ImageSizeManager shareManager] saveImage:model.localMediaPath size:localImage.size];
+        }
+        
+        imagesize = [[ImageSizeManager shareManager] sizeWithSrc:model.localMediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
+    } else {
+        imagesize = [[ImageSizeManager shareManager] sizeWithSrc:model.mediaPath originalWidth:kMediaItemWidth maxHeight:kMediaItemMaxHeight];
+    }
+    
+    NSLog(@"imagesize: %@", NSStringFromCGSize(imagesize));
+    return imagesize;
+}
 
 @end

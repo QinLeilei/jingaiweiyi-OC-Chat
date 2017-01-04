@@ -49,13 +49,16 @@
 
 - (void)pause;
 
-
 // 接收到的语音保存路径(文件以fileKey为名字)
 - (NSString *)receiveVoicePathWithFileKey:(NSString *)fileKey;
 
 // 获取语音时长
 - (NSUInteger)durationWithVideo:(NSURL *)voiceUrl;
 
-
+#pragma mark - add Method
+- (void)clearCaches;
+- (NSData *)voiceDataWithLocalPath:(NSString *)localPath;
+- (BOOL)voiceFileExistsAtLocalPath:(NSString *)localPath;
+- (void)saveVoiceData:(NSData *)date localPath:(NSString *)localPath;
 
 @end

@@ -51,53 +51,19 @@ typedef void(^Finish)(ICMessageFrame *messageF);
 + (ICMessageFrame *)createLocalImageMessageFrameWithContent:(NSString *)content
                                                        from:(NSString *)from
                                                          to:(NSString *)to localMediaPath:(NSString *)localMediaPath;
-/**
- *  创建一条本地消息
- *
- *  @param type    消息类型
- *  @param content 文本消息内容
- *  @param path    图片音频本地路径
- *
- *  @return 一条消息的ICMessageFrame
- */
-+ (ICMessageFrame *)createMessageFrame:(NSString *)type
-                               content:(NSString *)content
-                                  path:(NSString *)path
-                                  from:(NSString *)from
-                                    to:(NSString *)to
-                               fileKey:(NSString *)fileKey
-                              isSender:(BOOL)isSender
-              receivedSenderByYourself:(BOOL)receivedSenderByYourself;
 
 /**
- *  创建一条发送消息
- *
- *  @param type    消息类型
- *  @param content 消息文本内容，其它类型的类型名称:[图片]
- *  @param fileKey 音频文件的fileKey
- *  @param from    发送者
- *  @param to      接收者
- *  @param lnk     连接地址URL,图片格式,文件名称 （目前没用到）
- *  @param status  消息状态 （目前没用到）
- *
- *  @return 发送的消息
- */
-+ (ICMessage *)createSendMessage:(NSString *)type
-                         content:(NSString *)content
-                         fileKey:(NSString *)fileKey
-                            from:(NSString *)from
-                              to:(NSString *)to
-                             lnk:(NSString *)lnk
-                          status:(NSString *)status;
+ 创建一条本地语音消息
 
-+ (ICMessageFrame *)createTimeMessageFrame:(NSString *)type
-                                   content:(NSString *)content
-                                      path:(NSString *)path
-                                      from:(NSString *)from
-                                        to:(NSString *)to
-                                   fileKey:(NSString *)fileKey
-                                  isSender:(BOOL)isSender
-                  receivedSenderByYourself:(BOOL)receivedSenderByYourself;
+ @param content <#content description#>
+ @param from <#from description#>
+ @param to <#to description#>
+ @param localMediaPath <#localMediaPath description#>
+ @return <#return value description#>
+ */
++ (ICMessageFrame *)createLocalVoiceMessageFrameWithContent:(NSString *)content
+                                                       from:(NSString *)from
+                                                         to:(NSString *)to localMediaPath:(NSString *)localMediaPath;
 
 
 + (CGFloat)getVoiceTimeLengthWithPath:(NSString *)path;

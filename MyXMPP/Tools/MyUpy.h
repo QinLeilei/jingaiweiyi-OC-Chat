@@ -21,6 +21,7 @@ extern NSString const *kGetUpy;
 - (void)setProgress:(void(^)(NSProgress *uploadProgress))progress success:(void (^)(NSURLSessionDataTask* task, id responseObject)) success failure:(void (^)(NSURLSessionDataTask* task, NSError* error))failure ;
 
 // 上传图片
-- (void) uploadImage:(UIImage *)image savekey:(NSString *)savekey;
-
+- (void)uploadImage:(UIImage *)image savekey:(NSString *)savekey;
+// 上传文件
+- (void)uploadVoiceData:(NSData *)data savekey:(NSString *)savekey;
 @end

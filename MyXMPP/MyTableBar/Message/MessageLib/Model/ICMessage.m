@@ -12,7 +12,7 @@
 
 NSString * const ICMessageTextHasPrefix = @"text:";
 NSString * const ICMessageImageHasPrefix = @"image:";
-NSString * const ICMessageAudioHasPrefix = @"audio:";
+NSString * const ICMessageVoiceHasPrefix = @"voice:";
 NSString * const ICMessageVideoHasPrefix = @"video:";
 NSString * const ICMessageFilesHasPrefix = @"files:";
 NSString * const ICMessageSyetemHasPrefix = @"syetem:";
@@ -37,9 +37,9 @@ NSString * const ICMessageSyetemHasPrefix = @"syetem:";
         message.content = [xmppMessage.body substringFromIndex:ICMessageImageHasPrefix.length + 33];
         message.localMsgId = [xmppMessage.body substringWithRange:NSMakeRange(ICMessageImageHasPrefix.length, 32)];
         message.type = TypePic;
-    } else if ([xmppMessage.body hasPrefix:ICMessageAudioHasPrefix]) {
-        message.content = [xmppMessage.body substringFromIndex:ICMessageAudioHasPrefix.length + 33];
-        message.localMsgId = [xmppMessage.body substringWithRange:NSMakeRange(ICMessageAudioHasPrefix.length, 32)];
+    } else if ([xmppMessage.body hasPrefix:ICMessageVoiceHasPrefix]) {
+        message.content = [xmppMessage.body substringFromIndex:ICMessageVoiceHasPrefix.length + 33];
+        message.localMsgId = [xmppMessage.body substringWithRange:NSMakeRange(ICMessageVoiceHasPrefix.length, 32)];
         message.type = TypeVoice;
     } else if ([xmppMessage.body hasPrefix:ICMessageVideoHasPrefix]) {
         message.content = [xmppMessage.body substringFromIndex:ICMessageVideoHasPrefix.length + 33];

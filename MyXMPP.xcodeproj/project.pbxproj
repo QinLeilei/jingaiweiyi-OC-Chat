@@ -301,6 +301,7 @@
 		A4CAC7871DFA53B80054A4A7 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A4CAC7861DFA53B80054A4A7 /* CFNetwork.framework */; };
 		A4CAC7891DFA53C10054A4A7 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A4CAC7881DFA53C10054A4A7 /* SystemConfiguration.framework */; };
 		A4CAC78B1DFA53D30054A4A7 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A4CAC78A1DFA53D30054A4A7 /* Security.framework */; };
+		A4CB2FFB1E1B3AAE00FC460C /* ICChatBoxViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A4CB2FFA1E1B3AAE00FC460C /* ICChatBoxViewController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -910,6 +911,8 @@
 		A4CAC78D1DFA53F80054A4A7 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = usr/lib/libresolv.tbd; sourceTree = SDKROOT; };
 		A4CAC7901DFA54000054A4A7 /* libxml2.2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libxml2.2.tbd; path = usr/lib/libxml2.2.tbd; sourceTree = SDKROOT; };
 		A4CAC7911DFA54000054A4A7 /* libxml2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libxml2.tbd; path = usr/lib/libxml2.tbd; sourceTree = SDKROOT; };
+		A4CB2FF91E1B3AAE00FC460C /* ICChatBoxViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ICChatBoxViewController.h; sourceTree = "<group>"; };
+		A4CB2FFA1E1B3AAE00FC460C /* ICChatBoxViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ICChatBoxViewController.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2073,6 +2076,7 @@
 		A4A6AC8A1E0BCC23009C7A4E /* MessageLib */ = {
 			isa = PBXGroup;
 			children = (
+				A4CB2FF81E1B3A6C00FC460C /* Controller */,
 				A4A6AD7E1E0BCEA0009C7A4E /* Others */,
 				A4A6AD681E0BCE05009C7A4E /* Extension */,
 				A4A6AD671E0BCD45009C7A4E /* XZConstants.h */,
@@ -2485,6 +2489,15 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		A4CB2FF81E1B3A6C00FC460C /* Controller */ = {
+			isa = PBXGroup;
+			children = (
+				A4CB2FF91E1B3AAE00FC460C /* ICChatBoxViewController.h */,
+				A4CB2FFA1E1B3AAE00FC460C /* ICChatBoxViewController.m */,
+			);
+			path = Controller;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -2612,6 +2625,7 @@
 				A44730961DFAADC800E71DDF /* XMPPCapabilities.xcdatamodel in Sources */,
 				A447304E1DFAADC700E71DDF /* NSNumber+XMPP.m in Sources */,
 				A44730AF1DFAADC800E71DDF /* XMPPAttentionModule.m in Sources */,
+				A4CB2FFB1E1B3AAE00FC460C /* ICChatBoxViewController.m in Sources */,
 				A44730781DFAADC800E71DDF /* XMPPMessage+XEP0045.m in Sources */,
 				A42ADCBD1E0A6FE800F27D53 /* TFHttpTools.m in Sources */,
 				A44730601DFAADC800E71DDF /* XMPPRosterCoreDataStorage.m in Sources */,

@@ -34,18 +34,22 @@ static NSTimeInterval const expiresIn = 600;
     self.successBlock = success;
 }
 
-- (void) uploadImage:(UIImage *)image savekey:(NSString *)savekey
+- (void)uploadImage:(UIImage *)image savekey:(NSString *)savekey
 {
     NSData *imageData = UIImagePNGRepresentation(image);
     [self uploadImageData:imageData savekey:savekey];
 }
 
-- (void) uploadImageData:(NSData *)data savekey:(NSString *)savekey
+- (void)uploadImageData:(NSData *)data savekey:(NSString *)savekey
 {
     [self uploadFileData:data savekey:savekey];
 }
 
-- (void) uploadFileData:(NSData *)data savekey:(NSString *)savekey
+- (void)uploadVoiceData:(NSData *)data savekey:(NSString *)savekey {
+    [self uploadFileData:data savekey:savekey];
+}
+
+- (void)uploadFileData:(NSData *)data savekey:(NSString *)savekey
 {
     NSLog(@"savekey: %@", savekey);
     
