@@ -660,13 +660,16 @@
         didChangeChatBoxHeight:(CGFloat)height
 {
     self.chatBoxVC.view.top = self.view.bottom - height;
+    
     self.tableView.height = HEIGHT_SCREEN - height - HEIGHT_NAVBAR-HEIGHT_STATUSBAR;
+    
     if (height == HEIGHT_TABBAR) {
         [self.tableView reloadData];
         _isKeyBoardAppear  = NO;
-        [self scrollToBottom];
+        [self scrollToBottom:NO];
     } else {
-        [self scrollToBottom];
+        [self.tableView reloadData];
+        [self scrollToBottom:NO];
         _isKeyBoardAppear  = YES;
     }
     if (self.textView == nil) {
@@ -682,7 +685,7 @@
     [UIView animateWithDuration:0.5 animations:^{
         self.tableView.height = HEIGHT_SCREEN - videwViewH - HEIGHT_NAVBAR-HEIGHT_STATUSBAR;
         self.chatBoxVC.view.frame = CGRectMake(0, videwViewX+HEIGHT_NAVBAR+HEIGHT_STATUSBAR, App_Frame_Width, videwViewH);
-        [self scrollToBottom];
+        [self scrollToBottom:NO];
     } completion:^(BOOL finished) { // 状态改变
         self.chatBoxVC.chatBox.status = ICChatBoxStatusShowVideo;
         // 在这里创建视频设配
@@ -743,13 +746,6 @@
 }
 
 #pragma mark - private
-- (void) scrollToBottom
-{
-    if (self.dataSource.count > 0) {
-        [self.tableView scrollToRowAtIndexPath:[NSIndexPath indexPathForRow:self.dataSource.count-1 inSection:0] atScrollPosition:UITableViewScrollPositionBottom animated:NO];
-    }
-}
-
 /**< chatBoxVC 注销活动状态 */
 -(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {

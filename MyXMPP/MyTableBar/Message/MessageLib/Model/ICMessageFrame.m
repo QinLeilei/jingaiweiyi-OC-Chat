@@ -243,7 +243,7 @@
     } else {
         NSString *httpVoicePath = model.mediaPath;
         // 保存的到本地的位置
-        NSString *saveLocalPath = [[ICRecordManager shareManager] receiveVoicePathWithFileKey:[NSString stringWithFormat:@"%@", [NSData MD5HexDigest:[httpVoicePath dataUsingEncoding:NSUTF8StringEncoding]]]];
+        NSString *saveLocalPath = [self mediaPath:httpVoicePath];
         if ([[ICRecordManager shareManager] voiceFileExistsAtLocalPath:saveLocalPath]) {
             duration = [[ICRecordManager shareManager] durationWithVideo:[NSURL fileURLWithPath:saveLocalPath]];
         }
@@ -282,5 +282,11 @@
     NSLog(@"imagesize: %@", NSStringFromCGSize(imagesize));
     return imagesize;
 }
-
+// 文件路径
+- (NSString *)mediaPath:(NSString *)originPath
+{
+    // 这里文件路径重新给，根据文件名字来拼接
+    NSString *name = [[originPath lastPathComponent] stringByDeletingPathExtension];
+    return [[ICRecordManager shareManager] receiveVoicePathWithFileKey:name];
+}
 @end

@@ -39,11 +39,7 @@
 - (void)setModelFrame:(ICMessageFrame *)modelFrame
 {
     [super setModelFrame:modelFrame];
-    
-    
-    
     NSString *localVoicePath = modelFrame.model.localMediaPath;
-    
     if ([[ICRecordManager shareManager] voiceFileExistsAtLocalPath:localVoicePath]) { // 本地存在
         self.durationLabel.text  = [NSString stringWithFormat:@"%zd''",[[ICRecordManager shareManager] durationWithVideo:[NSURL fileURLWithPath:localVoicePath]]];
         [self setupUIWithModelFrame:modelFrame];

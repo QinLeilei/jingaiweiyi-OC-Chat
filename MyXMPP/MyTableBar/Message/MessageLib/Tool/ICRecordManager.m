@@ -251,17 +251,11 @@
     }
 }
 
-
-
-
-
 // 接收到的语音保存路径(文件以fileKey为名字)
 - (NSString *)receiveVoicePathWithFileKey:(NSString *)fileKey
 {
     return [self recorderPathWithFileName:fileKey];
 }
-
-
 
 // 获取语音时长
 - (NSUInteger)durationWithVideo:(NSURL *)voiceUrl{
